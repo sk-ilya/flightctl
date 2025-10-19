@@ -49,6 +49,8 @@ var _ = Describe("VM Agent behaviour during the application lifecycle", func() {
 			response, err := harness.GetDeviceWithStatusSystem(deviceId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).ToNot(BeNil())
+
+
 			device = response.JSON200
 			Expect(device.Status.Summary.Status).To(Equal(v1alpha1.DeviceSummaryStatusOnline))
 

@@ -156,7 +156,7 @@ jobs:
 
       - name: Deploy the flightctl server
         if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
-        run: DISABLE_FIPS="true" make deploy
+        run: DISABLE_FIPS="true" make -j4 deploy
 
       - name: Prepare the E2E test environment
         if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
