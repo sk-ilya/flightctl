@@ -1,19 +1,16 @@
 name: "E2E testing (Parallel Build)"
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      label_filter:
-        description: 'Ginkgo label filter expression to filter e2e tests'
-        required: false
-        default: 'sanity'
+      tag:
+        description: "Image tag"
+        required: true
         type: string
-  push:
-    branches:
-      - main
-      - 'release-*'
-  pull_request:
-  merge_group:
+      e2e_matrix:
+        description: "E2E matrix JSON array string"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -30,87 +27,86 @@ env:
   GITHUB_ACTIONS: true
 
 jobs:
-  compute-tag:
-    runs-on: ubuntu-24.04
+  prepare-matrix:
+    runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.compute-tag.outputs.git_tag }}
-      any_changed: ${{ steps.changed-files.outputs.any_changed }}
+      e2e_matrix: ${{ steps.prepare.outputs.e2e_matrix }}
+      label_matrix: ${{ steps.prepare.outputs.label_matrix }}
+      rpm_matrix: ${{ steps.prepare.outputs.rpm_matrix }}
+      agent_matrix: ${{ steps.prepare.outputs.agent_matrix }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          fetch-tags: true
+      - name: Prepare derived matrices
+        id: prepare
+        env:
+          E2E_MATRIX: ${{ inputs.e2e_matrix }}
+        run: |
+          set -euo pipefail
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v46
-        with:
-          since_last_remote_commit: 'true'
-          files_ignore: |
-            .spelling
-            README.md
-            docs/**
-            examples/**
+          echo "$E2E_MATRIX" | jq -e 'type == "array"' >/dev/null
+          echo "$E2E_MATRIX" | jq -e '
+            all(.[]; type == "object")
+            and all(.[]; (.os_id | type == "string" and length > 0))
+            and all(.[]; (.backend_type | type == "string" and length > 0))
+            and all(.[]; (.label_filter | type == "string" and length > 0))
+            and all(.[]; (.ginkgo_total_nodes | (type == "number" or type == "integer")))
+          ' >/dev/null
 
-      - name: Compute tag
-        id: compute-tag
-        if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
-        uses: ./.github/actions/compute-tag
+          e2e_matrix=$(echo "$E2E_MATRIX" | jq -c '{include: [.[] | {os_id, backend_type, label_filter, ginkgo_total_nodes}]}')
+          label_matrix=$(echo "$E2E_MATRIX" | jq -c '{include: ([.[].label_filter] | unique | map({label_filter: .}))}')
+
+          agent_matrix=$(echo "$E2E_MATRIX" | jq -c '
+            def rpm_suffix:
+              if . == "cs9-bootc" then "centos-stream+epel-next-9-x86_64"
+              elif . == "cs10-bootc" then "epel-10-x86_64"
+              else error("unknown os_id: " + .)
+              end;
+            {include: ([.[].os_id] | unique | map({os_id: ., rpm_suffix: (.|rpm_suffix)}))}
+          ')
+
+          rpm_matrix=$(echo "$agent_matrix" | jq -c '{include: ([.include[].rpm_suffix] | unique | map({root: .}))}')
+
+          {
+            echo "e2e_matrix=$e2e_matrix"
+            echo "label_matrix=$label_matrix"
+            echo "agent_matrix=$agent_matrix"
+            echo "rpm_matrix=$rpm_matrix"
+          } >> "$GITHUB_OUTPUT"
 
   build-images-and-charts:
-    needs: compute-tag
-    if: needs.compute-tag.outputs.any_changed == 'true'
     uses: ./.github/workflows/build-images-and-charts.yaml
 
   build-flightctl-cli:
-    needs: [build-images-and-charts, compute-tag]
-    if: needs.compute-tag.outputs.any_changed == 'true'
+    needs: [build-images-and-charts]
     runs-on: ubuntu-24.04
     outputs:
-      tag: ${{ needs.compute-tag.outputs.tag }}
+      tag: ${{ inputs.tag }}
     steps:
       - name: CLI built with backend job
         run: echo "CLI artifact produced by build-images-and-charts"
 
   build-rpms:
-    needs: compute-tag
-    if: needs.compute-tag.outputs.any_changed == 'true'
+    needs: prepare-matrix
     strategy:
-      matrix:
-        include:
-          - root: centos-stream+epel-next-9-x86_64
-          - root: epel-10-x86_64
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.rpm_matrix) }}
     uses: ./.github/workflows/build-rpms.yaml
     with:
       root: ${{ matrix.root }}
 
   build-agent-images-unified:
-    needs: [compute-tag, build-rpms]
-    if: needs.compute-tag.outputs.any_changed == 'true'
+    needs: [prepare-matrix, build-rpms]
     strategy:
-      matrix:
-        include:
-          - os_id: cs9-bootc
-            rpm_suffix: centos-stream+epel-next-9-x86_64
-          - os_id: cs10-bootc
-            rpm_suffix: epel-10-x86_64
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.agent_matrix) }}
     uses: ./.github/workflows/build-agent-images.yaml
     with:
       rpm_suffix: ${{ matrix.rpm_suffix }}
       os_id: ${{ matrix.os_id }}
-      tag: ${{ needs.compute-tag.outputs.tag }}
+      tag: ${{ inputs.tag }}
 
   discover-e2e-tests:
-    needs: compute-tag
-    if: needs.compute-tag.outputs.any_changed == 'true'
+    needs: prepare-matrix
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        include:
-          - label_filter: 'sanity && !slow'
-          - label_filter: 'sanity && slow'
-          - label_filter: 'sanity && agent'
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.label_matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -157,53 +153,35 @@ jobs:
       - name: Upload discovery artifact
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-discovery-${{ steps.compute-hash.outputs.hash }}-${{ needs.compute-tag.outputs.tag }}
+          name: e2e-discovery-${{ steps.compute-hash.outputs.hash }}-${{ inputs.tag }}
           path: discovery.json
           retention-days: 1
 
   e2e-tests:
     needs:
-      - compute-tag
       - build-images-and-charts
       - build-flightctl-cli
       - build-agent-images-unified
       - discover-e2e-tests
-    if: needs.compute-tag.outputs.any_changed == 'true'
+      - prepare-matrix
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os_id: cs9-bootc
-            backend_type: helm
-            label_filter: 'sanity && !slow'
-            ginkgo_total_nodes: 4
-          - os_id: cs9-bootc
-            backend_type: helm
-            ginkgo_total_nodes: 1
-            label_filter: 'sanity && slow'
-          - os_id: cs10-bootc
-            backend_type: helm
-            ginkgo_total_nodes: 1
-            label_filter: 'sanity && agent'
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.e2e_matrix) }}
     uses: ./.github/workflows/run-e2e-tests.yaml
     with:
       os_id: ${{ matrix.os_id }}
       backend_type: ${{ matrix.backend_type }}
       ginkgo_total_nodes: ${{ matrix.ginkgo_total_nodes }}
       ginkgo_label_filter: ${{ matrix.label_filter }}
-      tag: ${{ needs.compute-tag.outputs.tag }}
+      tag: ${{ inputs.tag }}
 
   e2e:
     runs-on: ubuntu-latest
-    needs: [compute-tag, e2e-tests]
+    needs: [e2e-tests]
     if: always()
     steps:
       - name: Check E2E Test Results
         run: |
-          if [[ "${{ needs.compute-tag.outputs.any_changed }}" != "true" ]]; then
-            echo "E2E tests were skipped (docs-only or ignored paths)"
-            exit 0
-          fi
           if [[ "${{ needs.e2e-tests.result }}" == "success" ]]; then
             echo "All E2E tests passed!"
             exit 0
