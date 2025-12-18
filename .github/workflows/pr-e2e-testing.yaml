@@ -110,6 +110,7 @@ jobs:
         include:
           - label_filter: 'sanity && !slow'
           - label_filter: 'sanity && slow'
+          - label_filter: 'sanity && agent'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -180,6 +181,10 @@ jobs:
             backend_type: helm
             ginkgo_total_nodes: 1
             label_filter: 'sanity && slow'
+          - os_id: cs10-bootc
+            backend_type: helm
+            ginkgo_total_nodes: 1
+            label_filter: 'sanity && agent'
     uses: ./.github/workflows/run-e2e-tests.yaml
     with:
       os_id: ${{ matrix.os_id }}
