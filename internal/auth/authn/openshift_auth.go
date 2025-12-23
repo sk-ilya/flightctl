@@ -301,8 +301,19 @@ func (o *OpenShiftAuth) loadTokenReview(ctx context.Context, token string) (*k8s
 
 // getProjectsForUser lists OpenShift projects accessible to the user
 func (o *OpenShiftAuth) getProjectsForUser(ctx context.Context, token string) ([]string, error) {
-	// Call OpenShift projects API
-	res, err := o.k8sClient.ListProjects(ctx, token)
+	// Build label selector if specified (enables server-side filtering)
+	var labelSelector string
+	if o.spec.ProjectLabelFilter != nil && *o.spec.ProjectLabelFilter != "" {
+		labelSelector = *o.spec.ProjectLabelFilter
+	}
+
+	// Call OpenShift projects API with optional label selector for server-side filtering
+	var opts []k8sclient.ListProjectsOption
+	if labelSelector != "" {
+		opts = append(opts, k8sclient.WithLabelSelector(labelSelector))
+	}
+
+	res, err := o.k8sClient.ListProjects(ctx, token, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)
 	}
@@ -332,5 +343,10 @@ func (o *OpenShiftAuth) getProjectsForUser(ctx context.Context, token string) ([
 
 // getRolesForUserInProject gets roles from RoleBindings in a project
 func (o *OpenShiftAuth) getRolesForUserInProject(ctx context.Context, project, username string) ([]string, error) {
-	return o.k8sClient.ListRoleBindingsForUser(ctx, project, username)
+	roles, err := o.k8sClient.ListRoleBindingsForUser(ctx, project, username)
+	if err != nil {
+		return nil, err
+	}
+	// Normalize role names by stripping release suffix if present
+	return normalizeRoleNames(roles, o.spec.RoleSuffix), nil
 }

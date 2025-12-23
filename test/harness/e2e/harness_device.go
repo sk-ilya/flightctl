@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	agentcfg "github.com/flightctl/flightctl/internal/agent/config"
 	apiclient "github.com/flightctl/flightctl/internal/api/client"
 	"github.com/flightctl/flightctl/test/util"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -107,6 +109,39 @@ func (h *Harness) UpdateDevice(deviceId string, updateFunction func(*v1beta1.Dev
 	return nil
 }
 
+// IsDeviceUpdateObserved returns true if the device is updating or has already updated to the expected version.
+func IsDeviceUpdateObserved(device *v1beta1.Device, expectedVersion int) bool {
+	version, err := GetRenderedVersion(device)
+	if err != nil {
+		rendered := "<nil>"
+		if device != nil && device.Status != nil && device.Status.Config != (v1beta1.DeviceConfigStatus{}) {
+			rendered = device.Status.Config.RenderedVersion
+		}
+		GinkgoWriter.Printf("Failed to parse rendered version '%s': %v\n", rendered, err)
+		return false
+	}
+
+	if device == nil || device.Status == nil {
+		return false
+	}
+
+	// The update has already applied
+	if version == expectedVersion {
+		return true
+	}
+	cond := v1beta1.FindStatusCondition(device.Status.Conditions, v1beta1.ConditionTypeDeviceUpdating)
+	if cond == nil {
+		return false
+	}
+	// send another update if we're in this state
+	validReasons := []v1beta1.UpdateState{
+		v1beta1.UpdateStatePreparing,
+		v1beta1.UpdateStateReadyToUpdate,
+		v1beta1.UpdateStateApplyingUpdate,
+	}
+	return slices.Contains(validReasons, v1beta1.UpdateState(cond.Reason))
+}
+
 func (h *Harness) UpdateApplication(withRetries bool, deviceId string, appName string, appProvider any, envVars map[string]string) error {
 	logrus.Infof("UpdateApplication called with deviceId=%s, appName=%s, withRetries=%v", deviceId, appName, withRetries)
 
@@ -192,32 +227,35 @@ func (h *Harness) EnsureDeviceContents(deviceId string, description string, cond
 	}, condition, timeout)
 }
 
-func (h *Harness) WaitForBootstrapAndUpdateToVersion(deviceId string, version string) (*v1beta1.Device, string, error) {
+func (h *Harness) WaitForBootstrapAndUpdateToVersion(deviceId string, version string) (*v1beta1.Device, util.ImageReference, error) {
+	var imageReference = util.ImageReference{}
 	// Check the device status right after bootstrap
 	response, err := h.GetDeviceWithStatusSystem(deviceId)
 	if err != nil {
-		return nil, "", err
+		return nil, imageReference, err
 	}
 	device := response.JSON200
 	if device.Status.Summary.Status != v1beta1.DeviceSummaryStatusOnline {
-		return nil, "", fmt.Errorf("device: %q is not online", deviceId)
+		return nil, imageReference, fmt.Errorf("device: %q is not online", deviceId)
 	}
-
-	var newImageReference string
 
 	err = h.UpdateDeviceWithRetries(deviceId, func(device *v1beta1.Device) {
 		currentImage := device.Status.Os.Image
 		logrus.Infof("current image for %s is %s", deviceId, currentImage)
-		repo, _ := h.parseImageReference(currentImage)
-		newImageReference = repo + version
-		device.Spec.Os = &v1beta1.DeviceOsSpec{Image: newImageReference}
+		imageReference, err = util.NewImageReferenceFromString(currentImage)
+		if err != nil {
+			logrus.Errorf("failed to parse image reference %s: %v", currentImage, err)
+			return
+		}
+		imageReference = imageReference.WithTag(version)
+		device.Spec.Os = &v1beta1.DeviceOsSpec{Image: imageReference.String()}
 		logrus.Infof("updating %s to image %s", deviceId, device.Spec.Os.Image)
 	})
 	if err != nil {
-		return nil, "", err
+		return nil, imageReference, err
 	}
 
-	return device, newImageReference, nil
+	return device, imageReference, nil
 }
 
 func (h *Harness) GetCurrentDeviceGeneration(deviceId string) (deviceRenderedVersionInt int64, err error) {
@@ -225,6 +263,15 @@ func (h *Harness) GetCurrentDeviceGeneration(deviceId string) (deviceRenderedVer
 	logrus.Infof("Waiting for the device to be UpToDate")
 	h.WaitForDeviceContents(deviceId, "The device is UpToDate",
 		func(device *v1beta1.Device) bool {
+			if device == nil || device.Status == nil {
+				return false
+			}
+			if device.Status.Updated.Status == v1beta1.DeviceUpdatedStatusUpToDate {
+				if device.Metadata.Generation != nil {
+					deviceGeneration = *device.Metadata.Generation
+				}
+				return true
+			}
 			for _, condition := range device.Status.Conditions {
 				if condition.Type == "Updating" && condition.Reason == "Updated" && condition.Status == "False" &&
 					device.Status.Updated.Status == v1beta1.DeviceUpdatedStatusUpToDate {
@@ -278,6 +325,13 @@ func (h *Harness) GetCurrentDeviceRenderedVersion(deviceId string) (int, error) 
 	logrus.Infof("Waiting for the device to be UpToDate")
 	h.WaitForDeviceContents(deviceId, "The device is UpToDate",
 		func(device *v1beta1.Device) bool {
+			if device == nil || device.Status == nil {
+				return false
+			}
+			if device.Status.Updated.Status == v1beta1.DeviceUpdatedStatusUpToDate {
+				deviceRenderedVersion, renderedVersionError = GetRenderedVersion(device)
+				return !errors.Is(renderedVersionError, InvalidRenderedVersionErr)
+			}
 			for _, condition := range device.Status.Conditions {
 				if condition.Type == "Updating" && condition.Reason == "Updated" && condition.Status == "False" &&
 					device.Status.Updated.Status == v1beta1.DeviceUpdatedStatusUpToDate {
@@ -317,11 +371,20 @@ func (h *Harness) WaitForDeviceNewRenderedVersion(deviceId string, newRenderedVe
 	UpdateRenderedVersionSuccessMessage := fmt.Sprintf("%s %d", util.UpdateRenderedVersionSuccess.String(), newRenderedVersionInt)
 	h.WaitForDeviceContents(deviceId, UpdateRenderedVersionSuccessMessage,
 		func(device *v1beta1.Device) bool {
+			if device == nil || device.Status == nil {
+				logrus.Warnf("Device %s or device status is nil, cannot check conditions", deviceId)
+				return false
+			}
 			for _, condition := range device.Status.Conditions {
 				if condition.Type == "Updating" && condition.Reason == "Updated" && condition.Status == "False" &&
-					device.Status.Updated.Status == v1beta1.DeviceUpdatedStatusUpToDate &&
-					device.Status.Config.RenderedVersion == strconv.Itoa(newRenderedVersionInt) {
-					return true
+					device.Status.Updated.Status == v1beta1.DeviceUpdatedStatusUpToDate {
+					// Accept jumps where multiple renders happen quickly (e.g., concurrent fleet/device updates)
+					if v, err := strconv.Atoi(device.Status.Config.RenderedVersion); err == nil && v >= newRenderedVersionInt {
+						if v > newRenderedVersionInt {
+							logrus.Warnf("Device %s has rendered version %d, which is greater than %d", deviceId, v, newRenderedVersionInt)
+						}
+						return true
+					}
 				}
 			}
 			return false

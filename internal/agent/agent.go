@@ -217,8 +217,7 @@ func (a *Agent) Run(ctx context.Context) error {
 		policyManager,
 		deviceReadWriter,
 		osClient,
-		a.config.SpecFetchInterval,
-		backoff,
+		pollBackoff,
 		deviceNotFoundHandler,
 		auditLogger,
 		a.log,
@@ -257,6 +256,7 @@ func (a *Agent) Run(ctx context.Context) error {
 		deviceReadWriter,
 		a.config.PullTimeout,
 		resourceManager,
+		pollBackoff,
 	)
 
 	// create status manager
@@ -357,6 +357,7 @@ func (a *Agent) Run(ctx context.Context) error {
 		applicationsManager,
 		deviceReadWriter,
 		a.log,
+		systemInfoManager.BootTime(),
 	)
 
 	// create agent
@@ -367,7 +368,6 @@ func (a *Agent) Run(ctx context.Context) error {
 		specManager,
 		applicationsManager,
 		systemdManager,
-		a.config.SpecFetchInterval,
 		a.config.StatusUpdateInterval,
 		hookManager,
 		osManager,

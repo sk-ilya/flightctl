@@ -277,6 +277,7 @@ For more detailed configuration options, see the [Values](#values) section below
 | global.auth.openshift.createAdminUser | bool | `true` | Create default flightctl-admin ServiceAccount with admin access |
 | global.auth.openshift.externalApiTokenSecretName | string | `""` | In case flightctl is not running within a cluster, you can provide a name of a secret that holds the API token |
 | global.auth.openshift.issuer | string | `""` | OAuth issuer URL (defaults to authorizationUrl if not specified) |
+| global.auth.openshift.projectLabelFilter | string | `""` | Project label filter for OpenShift projects (leave empty to use default: io.flightctl/instance=<releaseName>) |
 | global.auth.openshift.tokenUrl | string | `""` | OAuth token URL (leave empty to auto-detect from OpenShift cluster) |
 | global.auth.type | string | `""` | Type of authentication to use. Allowed values: 'k8s', 'oidc', 'aap', 'openshift', 'oauth2', or 'none'. When left empty (default and recommended), authentication type is auto-detected: 'openshift' on OpenShift clusters, 'k8s' otherwise. |
 | global.baseDomain | string | `""` | Base domain to construct the FQDN for the service endpoints. |
@@ -292,6 +293,7 @@ For more detailed configuration options, see the [Values](#values) section below
 | global.imagePullPolicy | string | `"IfNotPresent"` | Image pull policy for all containers |
 | global.imagePullSecretName | string | `""` | Name of the secret that holds image pull secret for accessing private container registries |
 | global.internalNamespace | string | `""` | A separate Namespace to which non-user-facing components should be deployed for increased security isolation. |
+| global.multiclusterEngineNamespace | string | `"multicluster-engine"` | Namespace where MultiCluster Engine is installed. Used for creating discovery ConfigMap and RBAC bindings. |
 | global.sshKnownHosts.data | string | `""` | SSH known hosts file content for Git repository host key verification. |
 | global.storageClassName | string | `""` | Storage class name for the PVCs. Keep empty to use the default storage class. |
 | kv | object | `{"fsGroup":"","image":{"image":"quay.io/sclorg/redis-7-c9s","pullPolicy":"","tag":"20250108"},"loglevel":"warning","maxmemory":"1gb","maxmemoryPolicy":"allkeys-lru","passwordSecretName":""}` | Key-Value Store Configuration |

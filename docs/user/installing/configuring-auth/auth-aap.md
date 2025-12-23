@@ -15,12 +15,12 @@ Flight Control API server integrates with AAP Gateway by:
 
 Flight Control uses the following standard roles for authorization:
 
-- **Super Admin** - Unrestricted access to all resources and operations across all organizations
 - **`flightctl-admin`** - Full access to all resources within an organization
+  - **Note:** This role cannot be set directly. Users automatically receive this role when they are set as AAP super admin
 - **`flightctl-org-admin`** - Full access to all resources within a specific organization
 - **`flightctl-operator`** - CRUD operations on devices, fleets, resourcesyncs, repositories
 - **`flightctl-viewer`** - Read-only access to all resources
-- **`flightctl-installer`** - Read-only access to devices, fleets, repositories
+- **`flightctl-installer`** - Access to get and approve enrollmentrequests, and manage certificate signing requests
 
 ## Organization Mapping
 
@@ -40,6 +40,8 @@ Flight Control uses role-based authorization with organization-scoped access:
 4. For each organization, Flight Control determines user permissions based on their roles
 5. Permissions are mapped based on the user's assigned roles
 
+**Note:** Any role or organization configuration changes require users to log in again or wait approximately 5 minutes to receive updated assignments.
+
 ## Configuration
 
 ### Static Configuration
@@ -53,11 +55,12 @@ auth:
   type: aap
   aap:
     apiUrl: https://aap-gateway.example.com
-    externalApiUrl: https://aap-gateway-external.example.com  # Optional
-    caCert: |
-      -----BEGIN CERTIFICATE-----
-      ...
-      -----END CERTIFICATE-----
+    authorizationUrl: https://aap-gateway.example.com/o/authorize/
+    tokenUrl: https://aap-gateway.example.com/o/token/
+    clientId: your-client-id
+    clientSecret: your-client-secret  # Optional
+    displayName: "AAP Provider"  # Optional
+    enabled: true  # Optional, defaults to true
 ```
 
 ### Single Provider

@@ -35,8 +35,11 @@ Configure how users are assigned to organizations via `organizationAssignment` i
   - `organizationNamePrefix`: Optional prefix for organization names
   - `organizationNameSuffix`: Optional suffix for organization names
 - **Per User** (`type: perUser`): Creates a separate organization for each user
+
   - `organizationNamePrefix`: Prefix for user-specific org name (default: `"user-org-"`)
   - `organizationNameSuffix`: Optional suffix for org name
+
+  **Important:** When choosing `organizationAssignment=perUser`, it's recommended to use `roleAssignment=static` with the `flightctl-org-admin` role. Since each user manages their own organization, `flightctl-org-admin` provides the appropriate permissions for managing organization resources. See below for details on role assignment.
 
 ### Role Assignment
 
@@ -50,6 +53,8 @@ Configure how roles are assigned via `roleAssignment` in the AuthProvider:
     - Example: `["custom", "roles"]` for `userinfo.custom.roles`
     - Example: `["custom", "user_context", "roles"]` for `userinfo.custom.user_context.roles`
   - `separator`: Separator for org:role format (default: `":"`) - roles containing the separator are split into organization-scoped roles
+
+**Note:** Any role or organization configuration changes on the issuer side require users to log in again to receive updated assignments.
 
 ## Role Scoping
 
@@ -80,7 +85,7 @@ Flight Control currently recognizes the following roles with defined permissions
 - **`flightctl-org-admin`** - Full access to all resources within assigned organization
 - **`flightctl-operator`** - CRUD operations on devices, fleets, resourcesyncs, repositories
 - **`flightctl-viewer`** - Read-only access to devices, fleets, resourcesyncs, organizations
-- **`flightctl-installer`** - Access to devices, fleets, repositories (read-only)
+- **`flightctl-installer`** - Access to get and approve enrollmentrequests, and manage certificate signing requests
 
 **Note:** Other role names can be assigned via AuthProvider configuration but will not have permissions unless they match these recognized roles.
 
@@ -144,6 +149,13 @@ Flight Control automatically infers introspection configuration for known provid
 If inference fails or you need a specific configuration, you must provide the `introspection` field explicitly.
 
 **Important:** Once the `introspection` field is set, it cannot be removed. You can update it to a different introspection method, but the field itself is required for all OAuth2 providers.
+
+### Redirect URLs
+
+Configure the following redirect URLs in both Flight Control and your OAuth2 provider:
+
+- `<UI_URL>/callback` - Web UI callback
+- `http://localhost:8080/callback` - CLI webserver callback (default port 8080)
 
 ### Dynamic Provider Management
 
@@ -302,14 +314,14 @@ spec:
   roleAssignment:
     type: static
     roles:
-      - flightctl-operator
+      - flightctl-org-admin
 EOF
 ```
 
 This configuration will:
 
 - Create a separate organization for each user (e.g., `user-org-alice`, `user-org-bob`)
-- Assign all users the `flightctl-operator` role in their personal organization
+- Assign all users the `flightctl-org-admin` role in their personal organization, giving them full administrative access to manage their organization's resources
 
 **Example with GitHub OAuth2:**
 

@@ -19,7 +19,7 @@ Flight Control API server supports the following authentication methods:
 
 #### 1. OIDC (OpenID Connect)
 
-Standard OpenID Connect protocol. Works with any OIDC-compliant provider (Azure AD, Okta, Keycloak, Google, etc.). Supports dynamic provider configuration, flexible organization and role mapping, and multiple simultaneous providers.
+Standard OpenID Connect protocol. Works with any OIDC-compliant provider. Supports dynamic provider configuration, flexible organization and role mapping, and multiple simultaneous providers.
 
 → [OIDC Authentication Documentation](auth-oidc.md)
 
@@ -48,6 +48,20 @@ Validates tokens via AAP Gateway API. Auto-maps AAP organizations to Flight Cont
 → [AAP Authentication Documentation](auth-aap.md)
 
 ## Managing Authentication Providers
+
+### Managing Providers via the Flight Control UI
+
+Users with administrative permissions can use the Flight Control UI to manage dynamic OIDC Providers.
+
+1. **Access Settings**: Click the **Settings** button (⚙️) in the navigation bar. This button is only visible to users with administrative permissions.
+
+2. **Navigate to Authentication Providers**: The Settings button takes you to the Authentication Providers page, where you can view all configured providers.
+
+3. **Add a New Provider**: Click the **Add authentication provider** button to open the provider creation form.
+
+4. **Edit an existing Provider**: Click the **Edit** button from the menu actions of a specific provider.
+
+### Managing Providers via the Flight Control API/CLI
 
 > **Note:** The examples below use the Flight Control CLI. See [Using the CLI](../../using/cli/overview.md) and [Logging in to the Service](../../using/cli/logging-in.md) for more information.
 
@@ -85,6 +99,8 @@ spec:
       - flightctl-operator
 EOF
 ```
+
+> **Note:** Organizations configured via `organizationAssignment` will not appear in Flight Control until a user actually logs in with that organization.
 
 **Managing Providers:**
 

@@ -34,6 +34,11 @@ const (
 	ApplicationStatusUnknown   ApplicationStatusType = "Unknown"
 )
 
+// Defines values for ApplicationVolumeReclaimPolicy.
+const (
+	Retain ApplicationVolumeReclaimPolicy = "Retain"
+)
+
 // Defines values for ApplicationsSummaryStatusType.
 const (
 	ApplicationsSummaryStatusDegraded       ApplicationsSummaryStatusType = "Degraded"
@@ -585,8 +590,11 @@ type ApplicationStatusType string
 // ApplicationVolume defines model for ApplicationVolume.
 type ApplicationVolume struct {
 	// Name Unique name of the volume used within the application.
-	Name  string `json:"name"`
-	union json.RawMessage
+	Name string `json:"name"`
+
+	// ReclaimPolicy Defines how the agent handles a volume when the owning application is removed.
+	ReclaimPolicy *ApplicationVolumeReclaimPolicy `json:"reclaimPolicy,omitempty"`
+	union         json.RawMessage
 }
 
 // ApplicationVolumeProviderSpec defines model for ApplicationVolumeProviderSpec.
@@ -594,6 +602,9 @@ type ApplicationVolumeProviderSpec struct {
 	// Volumes List of application volumes.
 	Volumes *[]ApplicationVolume `json:"volumes,omitempty"`
 }
+
+// ApplicationVolumeReclaimPolicy Defines how the agent handles a volume when the owning application is removed.
+type ApplicationVolumeReclaimPolicy string
 
 // ApplicationVolumeStatus Status of a volume used by an application.
 type ApplicationVolumeStatus struct {
@@ -1976,6 +1987,9 @@ type K8sProviderSpec struct {
 
 	// RoleAssignment AuthRoleAssignment defines how roles are assigned to users from this auth provider.
 	RoleAssignment AuthRoleAssignment `json:"roleAssignment"`
+
+	// RoleSuffix Optional suffix to strip from ClusterRole names when normalizing role names. Used for multi-release deployments where ClusterRoles have namespace-specific names (e.g., flightctl-admin-<namespace>).
+	RoleSuffix *string `json:"roleSuffix,omitempty"`
 }
 
 // K8sProviderSpecProviderType The type of authentication provider.
@@ -2204,8 +2218,14 @@ type OpenShiftProviderSpec struct {
 	// Issuer The OAuth2 issuer identifier (used for issuer identification in tokens).
 	Issuer *string `json:"issuer,omitempty"`
 
+	// ProjectLabelFilter If specified, only projects with this label will be considered. The label selector should be in the format 'key' or 'key=value'. If only the key is provided, any project with that label (regardless of value) will be included. This enables server-side filtering for better performance.
+	ProjectLabelFilter *string `json:"projectLabelFilter,omitempty"`
+
 	// ProviderType The type of authentication provider.
 	ProviderType OpenShiftProviderSpecProviderType `json:"providerType"`
+
+	// RoleSuffix Optional suffix to strip from ClusterRole names when normalizing role names. Used for multi-release deployments where ClusterRoles have namespace-specific names (e.g., flightctl-admin-<namespace>).
+	RoleSuffix *string `json:"roleSuffix,omitempty"`
 
 	// Scopes List of OAuth2 scopes to request.
 	Scopes *[]string `json:"scopes,omitempty"`
@@ -2736,7 +2756,7 @@ type UpdateSchedule struct {
 	At CronExpression `json:"at"`
 
 	// StartGraceDuration The maximum duration allowed for the action to complete. The duration should be specified as a positive integer followed by a time unit. Supported time units are: `s` for seconds, `m` for minutes, `h` for hours.
-	StartGraceDuration *Duration `json:"startGraceDuration,omitempty"`
+	StartGraceDuration Duration `json:"startGraceDuration"`
 
 	// TimeZone Time zone identifiers follow the IANA format AREA/LOCATION, where AREA represents a continent or ocean, and LOCATION specifies a particular site within that area, for example America/New_York, Europe/Paris. Only unambiguous 3-character time zones are supported ("GMT", "UTC").
 	TimeZone *TimeZone `json:"timeZone,omitempty"`
@@ -3401,6 +3421,12 @@ func (t ApplicationVolume) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("error marshaling 'name': %w", err)
 	}
 
+	if t.ReclaimPolicy != nil {
+		object["reclaimPolicy"], err = json.Marshal(t.ReclaimPolicy)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'reclaimPolicy': %w", err)
+		}
+	}
 	b, err = json.Marshal(object)
 	return b, err
 }
@@ -3420,6 +3446,13 @@ func (t *ApplicationVolume) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.Name)
 		if err != nil {
 			return fmt.Errorf("error reading 'name': %w", err)
+		}
+	}
+
+	if raw, found := object["reclaimPolicy"]; found {
+		err = json.Unmarshal(raw, &t.ReclaimPolicy)
+		if err != nil {
+			return fmt.Errorf("error reading 'reclaimPolicy': %w", err)
 		}
 	}
 

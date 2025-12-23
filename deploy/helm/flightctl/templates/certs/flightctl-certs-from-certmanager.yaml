@@ -18,7 +18,7 @@ spec:
   selfSigned: {}
 
 ---
-# FlightCtl CA Certificate (only created if user hasn't provided flightctl-ca)
+# Flight Control CA Certificate (only created if user hasn't provided flightctl-ca)
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -42,7 +42,7 @@ spec:
 {{- end }}
 
 ---
-# FlightCtl CA Issuer (for signing server certificates and intermediate CAs)
+# Flight Control CA Issuer (for signing server certificates and intermediate CAs)
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -183,7 +183,7 @@ metadata:
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "5"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 10
   template:

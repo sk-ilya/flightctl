@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/flightctl/flightctl/internal/agent/device/errors"
 	"github.com/flightctl/flightctl/internal/quadlet"
@@ -52,6 +53,14 @@ type QuadletReferences struct {
 	// MountImages defines a list images associated with the quadlet through mechanisms such as mounts.
 	// These can be OCI images or references to Image quadlets
 	MountImages []string
+	// Volumes defines a list of .volume quadlet references
+	Volumes []string
+	// MountVolumes defines a list of .volume references from Mount= keys
+	MountVolumes []string
+	// Networks defines a list of .network quadlet references
+	Networks []string
+	// Pods defines a list of .pod quadlet references
+	Pods []string
 	// The Name of the quadlet if the default will be overwritten
 	Name *string
 }
@@ -122,18 +131,73 @@ func ParseQuadletReferences(data []byte) (*QuadletReferences, error) {
 			}
 			if mountImage != "" {
 				spec.MountImages = append(spec.MountImages, mountImage)
+				continue
+			}
+
+			mountVolume, err := quadlet.MountVolume(mount)
+			if err != nil {
+				return nil, fmt.Errorf("parsing mount volume: %w", err)
+			}
+			if quadlet.IsVolumeReference(mountVolume) {
+				spec.MountVolumes = append(spec.MountVolumes, mountVolume)
 			}
 		}
 	}
 
-	name, err := unit.Lookup(detectedSection, quadlet.VolumeNameKey)
+	spec.Volumes, err = lookupQuadletReferences(unit, detectedSection, quadlet.VolumeKey, quadlet.VolumeExtension)
 	if err != nil {
-		if !errors.Is(err, quadlet.ErrKeyNotFound) {
-			return nil, fmt.Errorf("finding volume name: %w", err)
+		return nil, err
+	}
+
+	spec.Networks, err = lookupQuadletReferences(unit, detectedSection, quadlet.NetworkKey, quadlet.NetworkExtension)
+	if err != nil {
+		return nil, err
+	}
+
+	spec.Pods, err = lookupQuadletReferences(unit, detectedSection, quadlet.PodKey, quadlet.PodExtension)
+	if err != nil {
+		return nil, err
+	}
+
+	nameKeys := map[QuadletType]struct {
+		key      string
+		errLabel string
+	}{
+		QuadletTypeContainer: {key: quadlet.ContainerNameKey, errLabel: "container name"},
+		QuadletTypeVolume:    {key: quadlet.VolumeNameKey, errLabel: "volume name"},
+		QuadletTypeNetwork:   {key: quadlet.NetworkNameKey, errLabel: "network name"},
+		QuadletTypePod:       {key: quadlet.PodNameKey, errLabel: "pod name"},
+	}
+
+	if nameKey, ok := nameKeys[spec.Type]; ok {
+		name, err := unit.Lookup(detectedSection, nameKey.key)
+		if err != nil {
+			if !errors.Is(err, quadlet.ErrKeyNotFound) {
+				return nil, fmt.Errorf("finding %s: %w", nameKey.errLabel, err)
+			}
+		} else {
+			spec.Name = &name
 		}
-	} else {
-		spec.Name = &name
 	}
 
 	return spec, nil
+}
+
+func lookupQuadletReferences(unit *quadlet.Unit, section string, key string, extension string) ([]string, error) {
+	values, err := unit.LookupAll(section, key)
+	if err != nil {
+		if !errors.Is(err, quadlet.ErrKeyNotFound) {
+			return nil, fmt.Errorf("finding %q key: %w", key, err)
+		}
+		return nil, nil
+	}
+
+	var refs []string
+	for _, value := range values {
+		parts := strings.Split(value, ":")
+		if quadlet.IsQuadletReference(parts[0], extension) {
+			refs = append(refs, parts[0])
+		}
+	}
+	return refs, nil
 }

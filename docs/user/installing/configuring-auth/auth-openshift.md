@@ -15,10 +15,14 @@ Flight Control API server integrates with OpenShift OAuth by:
 
 Flight Control provides the following standard ClusterRoles out-of-the-box:
 
-- **`flightctl-admin`** - Full access to all Flight Control resources
-- **`flightctl-operator`** - CRUD operations on devices, fleets, resourcesyncs, repositories
-- **`flightctl-viewer`** - Read-only access to devices, fleets, resourcesyncs, organizations
-- **`flightctl-installer`** - Access to enrollmentrequests and certificate signing requests
+- **`flightctl-admin-<namespace>`** - Full access to all Flight Control resources
+- **`flightctl-operator-<namespace>`** - CRUD operations on devices, fleets, resourcesyncs, repositories
+- **`flightctl-viewer-<namespace>`** - Read-only access to devices, fleets, resourcesyncs, organizations
+- **`flightctl-installer-<namespace>`** - Access to enrollmentrequests and certificate signing requests
+
+**Note:** ClusterRole names include a namespace suffix (e.g., `flightctl-admin-<namespace>`). The `<namespace>` value matches your Helm release namespace. When creating RoleBindings, you must use the suffixed ClusterRole names.
+
+**Note:** Flight Control automatically creates a service account named `flightctl-admin` with the `flightctl-admin-<namespace>` role; to use other role types, create your own service account and bind it to the desired ClusterRole.
 
 ## Organization Mapping
 
@@ -26,6 +30,16 @@ Flight Control automatically maps OpenShift projects to Flight Control organizat
 
 - Each OpenShift project becomes a Flight Control organization
 - Users inherit access to Flight Control organizations based on their OpenShift project membership
+
+### Project Filtering
+
+By default, Flight Control only considers OpenShift projects labeled with `io.flightctl/instance=<releaseName>`. To include a project, label it:
+
+```bash
+oc label namespace my-project io.flightctl/instance=my-release
+```
+
+Only projects with this label will be mapped to Flight Control organizations. You can customize the label selector via `global.auth.openshift.projectLabelFilter` in your Helm values.
 
 ## Authorization
 
@@ -35,6 +49,8 @@ Flight Control uses RoleBindings from project namespaces to determine user permi
 2. Flight Control retrieves user's OpenShift projects
 3. For each project, Flight Control checks RoleBindings in the project namespace
 4. Permissions are mapped based on ClusterRoles bound to the user
+
+**Note:** Any role or organization configuration changes require users to log in again or wait approximately 5 minutes to receive updated assignments.
 
 ## Configuration
 
@@ -86,21 +102,28 @@ oc new-project my-org
 
 ### 2. Assign Roles to Users
 
-Use `oc adm policy add-role-to-user` to assign roles to users in your project:
+Use `oc adm policy add-role-to-user` to assign roles to users in your project. **Important:** You must use the namespace-specific ClusterRole names (e.g., `flightctl-admin-<namespace>`) where `<namespace>` is your Helm release namespace:
 
 ```bash
 # Required: Grant view permissions so the user has access to the project
 oc adm policy add-role-to-user view my-user -n my-org
 
 # Choose one of the following Flight Control roles based on the user's needs:
+# Replace <namespace> with your Helm release namespace (e.g., "flightctl" or "flightctl-prod")
 # Grant Flight Control admin permissions
-oc adm policy add-role-to-user flightctl-admin my-user -n my-org
+oc adm policy add-role-to-user flightctl-admin-<namespace> my-user -n my-org
 
 # Grant Flight Control operator permissions
-oc adm policy add-role-to-user flightctl-operator my-user -n my-org
+oc adm policy add-role-to-user flightctl-operator-<namespace> my-user -n my-org
 
 # Grant Flight Control viewer permissions
-oc adm policy add-role-to-user flightctl-viewer my-user -n my-org
+oc adm policy add-role-to-user flightctl-viewer-<namespace> my-user -n my-org
+```
+
+**Example:** If your Helm release namespace is `flightctl`, use:
+
+```bash
+oc adm policy add-role-to-user flightctl-admin-flightctl my-user -n my-org
 ```
 
 **Note:** You may see a warning "User 'my-user' not found" when assigning roles to users that don't exist yet in OpenShift. This is expected and the role will still be added. The user will be able to use these permissions once they authenticate.
@@ -130,6 +153,14 @@ Users with access to multiple OpenShift projects will have access to multiple Fl
 flightctl get devices --org project-a
 flightctl get devices --org project-b
 ```
+
+## Troubleshooting
+
+**Error: no organizations found**  
+Make sure the user has a RoleBinding attached to the **view** role in at least one organization (namespace) and that the namespace has the right label.
+
+**403 error when performing actions on flightctl resources**  
+Make sure the user has a RoleBinding attached to a role with the right permission in the organization's namespace.
 
 ## Related Documentation
 

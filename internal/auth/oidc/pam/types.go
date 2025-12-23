@@ -3,6 +3,7 @@
 package pam
 
 import (
+	"html/template"
 	"os/user"
 
 	"github.com/flightctl/flightctl/internal/auth/authn"
@@ -15,12 +16,13 @@ type Logger = *logrus.Logger
 
 // PAMOIDCProvider represents a PAM-based OIDC issuer
 type PAMOIDCProvider struct {
-	jwtGenerator     *authn.JWTGenerator
-	config           *config.PAMOIDCIssuer
-	pamAuthenticator Authenticator
-	codeStore        *AuthorizationCodeStore
-	sessionStore     *SessionStore
-	log              Logger
+	jwtGenerator      *authn.JWTGenerator
+	config            *config.PAMOIDCIssuer
+	pamAuthenticator  Authenticator
+	codeStore         *AuthorizationCodeStore
+	log               Logger
+	loginFormTemplate *template.Template
+	cookieKey         []byte // AES-256 key for encrypting pending auth cookies
 }
 
 // Authenticator interface for PAM authentication and NSS user lookup

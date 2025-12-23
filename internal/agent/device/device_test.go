@@ -25,15 +25,14 @@ import (
 	"github.com/flightctl/flightctl/internal/agent/device/status"
 	"github.com/flightctl/flightctl/internal/agent/device/systemd"
 	"github.com/flightctl/flightctl/internal/agent/device/systeminfo"
-	"github.com/flightctl/flightctl/internal/util"
 	"github.com/flightctl/flightctl/pkg/executer"
 	"github.com/flightctl/flightctl/pkg/log"
+	"github.com/flightctl/flightctl/pkg/poll"
 	testutil "github.com/flightctl/flightctl/test/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func TestSync(t *testing.T) {
@@ -203,7 +202,7 @@ func TestSync(t *testing.T) {
 			podmanClient := client.NewPodman(log, mockExec, readWriter, testutil.NewPollConfig())
 			mockWatcher := spec.NewMockWatcher(ctrl)
 			consoleManager := console.NewManager(mockRouterService, deviceName, mockExec, mockWatcher, log)
-			appController := applications.NewController(podmanClient, mockAppManager, readWriter, log)
+			appController := applications.NewController(podmanClient, mockAppManager, readWriter, log, "2025-01-01T00:00:00Z")
 			statusManager := status.NewManager(deviceName, log)
 			statusManager.SetClient(mockManagementClient)
 			configController := config.NewController(readWriter, log)
@@ -330,8 +329,7 @@ func TestRollbackDevice(t *testing.T) {
 				policyManager,
 				readWriter,
 				mockOSClient,
-				util.Duration(time.Second),
-				wait.Backoff{Steps: 1},
+				poll.NewConfig(time.Second, 1.5),
 				func() error { return nil },
 				mockAuditLogger,
 				log,

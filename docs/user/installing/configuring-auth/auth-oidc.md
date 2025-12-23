@@ -13,15 +13,7 @@ Flight Control API server implements standard OpenID Connect authentication. It 
 
 ## OIDC Providers
 
-Flight Control works with any OIDC-compliant provider, including:
-
-- Azure AD / Microsoft Entra ID
-- Okta
-- Keycloak
-- Google
-- Auth0
-- And any other OIDC-compliant provider
-
+Flight Control works with any OIDC-compliant provider.
 For standalone deployments, [PAM Issuer](auth-pam.md) is bundled as a default OIDC provider.
 
 ## Organization and Role Mapping
@@ -40,8 +32,11 @@ Configure how users are assigned to organizations via `organizationAssignment` i
   - `organizationNamePrefix`: Optional prefix for organization names
   - `organizationNameSuffix`: Optional suffix for organization names
 - **Per User** (`type: perUser`): Creates a separate organization for each user
+
   - `organizationNamePrefix`: Prefix for user-specific org name (default: `"user-org-"`)
   - `organizationNameSuffix`: Optional suffix for org name
+
+  **Important:** When choosing `organizationAssignment=perUser`, it's recommended to use `roleAssignment=static` with the `flightctl-org-admin` role. Since each user manages their own organization, `flightctl-org-admin` provides the appropriate permissions for managing organization resources. See below for details on role assignment.
 
 ### Role Assignment
 
@@ -55,6 +50,8 @@ Configure how roles are assigned via `roleAssignment` in the AuthProvider:
     - Example: `["realm_access", "roles"]` for `userinfo.realm_access.roles`
     - Example: `["resource_access", "flightctl", "roles"]` for `userinfo.resource_access.flightctl.roles`
   - `separator`: Separator for org:role format (default: `":"`) - roles containing the separator are split into organization-scoped roles
+
+**Note:** Any role or organization configuration changes on the issuer side require users to log in again to receive updated assignments.
 
 ## Role Scoping
 
@@ -85,11 +82,18 @@ Flight Control currently recognizes the following roles with defined permissions
 - **`flightctl-org-admin`** - Full access to all resources within assigned organization
 - **`flightctl-operator`** - CRUD operations on devices, fleets, resourcesyncs, repositories
 - **`flightctl-viewer`** - Read-only access to devices, fleets, resourcesyncs, organizations
-- **`flightctl-installer`** - Access to devices, fleets, repositories (read-only)
+- **`flightctl-installer`** - Access to get and approve enrollmentrequests, and manage certificate signing requests
 
 **Note:** Other role names can be assigned via AuthProvider configuration but will not have permissions unless they match these recognized roles.
 
 ## Configuration
+
+### Redirect URLs
+
+Configure the following redirect URLs in both Flight Control and your OIDC provider:
+
+- `<UI_URL>/callback` - Web UI callback
+- `http://localhost:8080/callback` - CLI webserver callback (default port 8080)
 
 ### Dynamic Provider Management
 
@@ -200,14 +204,14 @@ spec:
   roleAssignment:
     type: static
     roles:
-      - flightctl-operator
+      - flightctl-org-admin
 EOF
 ```
 
 This configuration will:
 
 - Create a separate organization for each user (e.g., `user-org-alice`, `user-org-bob`)
-- Assign all users the `flightctl-operator` role in their personal organization
+- Assign all users the `flightctl-org-admin` role in their personal organization, giving them full administrative access to manage their organization's resources
 
 **Example with simple (non-nested) claim paths:**
 
@@ -262,7 +266,7 @@ flightctl delete ap my-oidc-provider
 
 ## When to Use OIDC Authentication
 
-- ✅ Production deployments with corporate SSO (Azure AD, Okta, etc.)
+- ✅ Production deployments with corporate SSO.
 - ✅ Development and testing environments
 - ✅ Multiple identity sources
 - ✅ Need flexible organization and role mapping

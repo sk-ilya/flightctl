@@ -261,6 +261,10 @@ sudo
 ts
 update_device_status_duration_seconds
 v1.0.0
+P-256
+SHA-256
+config.yaml
+FQDN
  - docs/user/references/api-resources.md
 namespacing
 approvedBy
@@ -312,6 +316,8 @@ GroupBy
 MinAvailable
 MaxUnavailable
 MultipleOwners
+subfields
+namespaced
  - docs/user/building/building-images.md
 usr
 iso
@@ -346,7 +352,6 @@ values.yaml
 k8s
  - docs/user/using/provisioning-devices.md
 cloud-config.yaml
-config.yaml
 datastore
 disk.vmdk
 iso
@@ -469,8 +474,14 @@ PAM
 alice
 bob
 charlie
+MaxAge
  - docs/user/installing/configuring-auth/auth-oauth2.md
 GitHub
 github.com
 clientId
 JWKS
+CLI
+webserver
+ - docs/user/installing/configuring-auth/auth-oidc.md
+CLI
+webserver

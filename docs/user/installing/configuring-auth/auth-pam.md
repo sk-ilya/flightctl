@@ -65,7 +65,7 @@ There are no special prerequisites for using PAM authentication. The PAM issuer 
 
 ## Configuration
 
-The PAM issuer is configured in the Flight Control configuration file (typically `~/.flightctl/config.yaml` or `/etc/flightctl/config.yaml`). The configuration is located under the `auth.pamOidcIssuer` section.
+The PAM issuer is configured in the Flight Control configuration file (`/etc/flightctl/service-config.yaml`). The configuration is located under the `auth.pamOidcIssuer` section.
 
 ### Configuration Options
 
@@ -85,6 +85,10 @@ auth:
       - "http://localhost:7777/callback"
     pamService: "flightctl"                            # PAM service name (default: "flightctl")
     allowPublicClientWithoutPKCE: false                # SECURITY: Allow public clients without PKCE (not recommended)
+    accessTokenExpiration: "1h"                         # Expiration duration for access tokens and ID tokens (default: "1h")
+    refreshTokenExpiration: "168h"                     # Expiration duration for refresh tokens (default: "168h", equivalent to 7 days)
+    pendingSessionCookieMaxAge: "10m"                  # MaxAge duration for pending session cookies (default: "10m")
+    authenticatedSessionCookieMaxAge: "30m"            # MaxAge duration for authenticated session cookies (default: "30m")
 ```
 
 ### Configuration Parameters
@@ -100,7 +104,9 @@ auth:
 | `pamService` | PAM service name to use for authentication (must match `/etc/pam.d/<name>`) | `flightctl` |
 | `allowPublicClientWithoutPKCE` | Allow public clients to skip PKCE requirement. **Security Warning**: Only enable for testing | `false` |
 | `accessTokenExpiration` | Expiration duration for access tokens and ID tokens (e.g., `1h`, `30m`) | `1h` |
-| `refreshTokenExpiration` | Expiration duration for refresh tokens (e.g., `7d`, `168h`) | `7d` |
+| `refreshTokenExpiration` | Expiration duration for refresh tokens (e.g., `168h`, `720h`) | `168h` |
+| `pendingSessionCookieMaxAge` | MaxAge duration for pending session cookies (e.g., `10m`, `15m`) | `10m` |
+| `authenticatedSessionCookieMaxAge` | MaxAge duration for authenticated session cookies (e.g., `30m`, `1h`) | `30m` |
 
 ### Default Configuration
 
@@ -112,7 +118,9 @@ If the `pamOidcIssuer` section is present in the configuration file, the followi
 - **Scopes**: Defaults to `["openid", "profile", "email", "roles"]`
 - **Redirect URIs**: Automatically configured based on the service's base UI URL or base URL
 - **Access Token Expiration**: Defaults to `1h`
-- **Refresh Token Expiration**: Defaults to `7d`
+- **Refresh Token Expiration**: Defaults to `168h` (7 days)
+- **Pending Session Cookie MaxAge**: Defaults to `10m` (10 minutes)
+- **Authenticated Session Cookie MaxAge**: Defaults to `30m` (30 minutes)
 
 ### Security Note
 
@@ -120,7 +128,7 @@ The `allowPublicClientWithoutPKCE` parameter should remain `false` (default) in 
 
 ### Token Expiration
 
-Token expiration times are configurable via `accessTokenExpiration` and `refreshTokenExpiration` parameters. By default, access tokens and ID tokens expire after **1 hour**, and refresh tokens expire after **7 days**.
+Token expiration times are configurable via `accessTokenExpiration` and `refreshTokenExpiration` parameters. By default, access tokens and ID tokens expire after **1 hour**, and refresh tokens expire after **168 hours (7 days)**.
 
 ## User Management
 

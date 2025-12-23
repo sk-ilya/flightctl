@@ -1,8 +1,13 @@
 global:
+  # The base domain for the deployment, from which the service FQDNs are derived.
+  # If provided, must be a fully qualified domain name (FQDN) like "example.com" or a hostname that resolves via DNS.
+  # If not provided, defaults to the system's hostname FQDN ('hostname -f').
   baseDomain:
+
   # Certificate generation method - 'none' or 'builtin'
   # - none: Do not generate certificates. User must provide certs in /etc/flightctl/pki/ or the service will fail to start.
-  # - builtin: Generate required certificates using openssl (default)
+  # - builtin: Generate a self-signed CA cert in /etc/flightctl/pki/ca.{crt,key}, unless the user already provided that CA.
+  #            Generate the remaining certificates from the CA cert (default)
   generateCertificates: builtin
   auth:
     type: oidc # oidc, aap, oauth2, or none
@@ -40,22 +45,13 @@ global:
         - profile
         - email
         - roles
+        - offline_access
       pamService: flightctl
 
 db:
-  # external: Set to "enabled" to use external PostgreSQL database
-  # When enabled, set hostname, port, name to point to your external database
-  external: "disabled"  # "disabled" (default) | "enabled"
-  hostname: ""  # External DB hostname (required when external: "enabled")
-  port: 5432
   name: flightctl
-  user: flightctl_app
-  migrationUser: flightctl_migrator
-  # SSL configuration for secure database connections
-  sslmode: ""       # SSL mode: disable, allow, prefer, require, verify-ca, verify-full
-  sslcert: ""       # Path to SSL client certificate file
-  sslkey: ""        # Path to SSL client key file
-  sslrootcert: ""   # Path to SSL root certificate file (CA certificate)
+  # To use external PostgreSQL database replace `builtin` with `external` and set an appropriate `external:` block
+  type: "builtin"
 
 service:
   # Rate limiting configuration

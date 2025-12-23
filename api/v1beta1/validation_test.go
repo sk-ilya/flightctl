@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/flightctl/flightctl/internal/api/common"
+	"github.com/flightctl/flightctl/internal/consts"
+	"github.com/flightctl/flightctl/internal/identity"
 	"github.com/robfig/cron/v3"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -116,8 +119,9 @@ func TestValidateUpdateScheduleCron(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			schedule := UpdateSchedule{
-				At:       tt.schedule,
-				TimeZone: lo.ToPtr("America/New_York"),
+				At:                 tt.schedule,
+				TimeZone:           lo.ToPtr("America/New_York"),
+				StartGraceDuration: "30s",
 			}
 
 			errs := schedule.Validate()
@@ -188,8 +192,9 @@ func TestValidateUpdateScheduleTimeZone(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			schedule := UpdateSchedule{
-				At:       "* * * * *",
-				TimeZone: lo.ToPtr(tt.timeZone),
+				At:                 "* * * * *",
+				TimeZone:           lo.ToPtr(tt.timeZone),
+				StartGraceDuration: "30s",
 			}
 
 			errs := schedule.Validate()
@@ -297,7 +302,7 @@ func TestValidateScheduleAndGraceDuration(t *testing.T) {
 			require := require.New(t)
 			schedule := UpdateSchedule{
 				At:                 tt.cronExpression,
-				StartGraceDuration: lo.ToPtr(tt.duration),
+				StartGraceDuration: tt.duration,
 			}
 
 			errs := schedule.Validate()
@@ -581,6 +586,67 @@ ContextDir=/tmp/build`
 				require.NotEmpty(t, errs, "expected errors but got none")
 			} else {
 				require.Empty(t, errs, "expected no errors but got: %v", errs)
+			}
+		})
+	}
+}
+
+func TestInlineApplicationProviderSpecValidateQuadletNames(t *testing.T) {
+	tests := []struct {
+		name       string
+		inline     []ApplicationContent
+		wantErr    bool
+		wantSubstr string
+	}{
+		{
+			name: "duplicate volume names",
+			inline: []ApplicationContent{
+				{
+					Path:    "test.volume",
+					Content: lo.ToPtr("[Volume]\nVolumeName=testdata\nDriver=local\n"),
+				},
+				{
+					Path:    "test2.volume",
+					Content: lo.ToPtr("[Volume]\nVolumeName=testdata\nDriver=local\n"),
+				},
+			},
+			wantErr:    true,
+			wantSubstr: `duplicate VolumeName "testdata"`,
+		},
+		{
+			name: "unique names across types",
+			inline: []ApplicationContent{
+				{
+					Path:    "app.container",
+					Content: lo.ToPtr("[Container]\nContainerName=shared\nImage=quay.io/podman/hello:latest\n"),
+				},
+				{
+					Path:    "net.network",
+					Content: lo.ToPtr("[Network]\nNetworkName=shared\n"),
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := InlineApplicationProviderSpec{Inline: tt.inline}
+			errs := spec.Validate(AppTypeQuadlet, false)
+			if tt.wantErr {
+				require.NotEmpty(t, errs, "expected duplicate error, got none")
+				found := false
+				for _, err := range errs {
+					if strings.Contains(err.Error(), tt.wantSubstr) {
+						found = true
+						break
+					}
+				}
+				require.True(t, found, "expected error containing %q, got %v", tt.wantSubstr, errs)
+			} else {
+				for _, err := range errs {
+					require.NotContains(t, err.Error(), "duplicate", "unexpected duplicate error: %v", err)
+				}
 			}
 		})
 	}
@@ -1247,6 +1313,30 @@ func TestValidateVolumeAppTypeCompatibility(t *testing.T) {
 	}
 }
 
+func TestValidateVolumeReclaimPolicy(t *testing.T) {
+	require := require.New(t)
+
+	t.Run("delete reclaim policy unsupported", func(t *testing.T) {
+		vol := createImageVolume(t, "data", "quay.io/test/image:v1")
+		policy := ApplicationVolumeReclaimPolicy("Delete")
+		vol.ReclaimPolicy = &policy
+
+		errs := validateVolume(vol, "spec.applications[test].volumes[0]", false, AppTypeCompose)
+		require.NotEmpty(errs)
+		require.Contains(errs[0].Error(), "only \"Retain\" is supported")
+	})
+
+	t.Run("invalid reclaim policy value", func(t *testing.T) {
+		vol := createImageVolume(t, "data", "quay.io/test/image:v1")
+		policy := ApplicationVolumeReclaimPolicy("Recycle")
+		vol.ReclaimPolicy = &policy
+
+		errs := validateVolume(vol, "spec.applications[test].volumes[0]", false, AppTypeCompose)
+		require.Len(errs, 1)
+		require.Contains(errs[0].Error(), "reclaimPolicy")
+	})
+}
+
 func TestValidateResourceMonitor(t *testing.T) {
 	require := require.New(t)
 	tests := []struct {
@@ -1702,7 +1792,8 @@ ExecStart=/usr/bin/myapp`,
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			content := []byte(tt.content)
-			errs := ValidateApplicationContent(content, AppTypeQuadlet, tt.path)
+			validator := quadletValidator{quadlets: make(map[string]*common.QuadletReferences)}
+			errs := validator.ValidateContents(tt.path, content, false)
 
 			require.Len(errs, tt.wantErrCount, "expected %d errors, got %d: %v", tt.wantErrCount, len(errs), errs)
 			if tt.wantErrSubstr != "" && len(errs) > 0 {
@@ -1712,18 +1803,27 @@ ExecStart=/usr/bin/myapp`,
 	}
 }
 
+// contextWithSuperAdmin creates a context with a super admin mapped identity
+func contextWithSuperAdmin(ctx context.Context) context.Context {
+	mappedIdentity := identity.NewMappedIdentity("admin", "admin-uid", nil, nil, true, nil)
+	return context.WithValue(ctx, consts.MappedIdentityCtxKey, mappedIdentity)
+}
+
 func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 	require := require.New(t)
-	ctx := context.Background()
+	baseCtx := context.Background()
+	superAdminCtx := contextWithSuperAdmin(baseCtx)
 
 	tests := []struct {
 		name       string
+		ctx        context.Context
 		assignment AuthStaticRoleAssignment
 		wantErrs   int
 		errSubstrs []string
 	}{
 		{
 			name: "empty roles list",
+			ctx:  baseCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{},
@@ -1733,6 +1833,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid custom role",
+			ctx:  superAdminCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{ExternalRoleAdmin, ExternalRoleViewer, "custom-role"},
@@ -1742,6 +1843,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 		},
 		{
 			name: "valid known roles",
+			ctx:  superAdminCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{ExternalRoleAdmin, ExternalRoleViewer, ExternalRoleOperator},
@@ -1750,6 +1852,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid role",
+			ctx:  superAdminCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{ExternalRoleAdmin, "invalid-role"},
@@ -1759,6 +1862,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 		},
 		{
 			name: "empty role string",
+			ctx:  superAdminCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{ExternalRoleAdmin, ""},
@@ -1768,6 +1872,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 		},
 		{
 			name: "all known external roles",
+			ctx:  superAdminCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{ExternalRoleAdmin, ExternalRoleOrgAdmin, ExternalRoleOperator, ExternalRoleViewer, ExternalRoleInstaller},
@@ -1776,6 +1881,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 		},
 		{
 			name: "multiple invalid roles",
+			ctx:  baseCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{"invalid-role-1", "invalid-role-2"},
@@ -1785,6 +1891,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 		},
 		{
 			name: "mix of valid and invalid roles",
+			ctx:  superAdminCtx,
 			assignment: AuthStaticRoleAssignment{
 				Type:  AuthStaticRoleAssignmentTypeStatic,
 				Roles: []string{ExternalRoleAdmin, "invalid-role", ExternalRoleViewer},
@@ -1796,7 +1903,7 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errs := tt.assignment.Validate(ctx)
+			errs := tt.assignment.Validate(tt.ctx)
 			require.Len(errs, tt.wantErrs, "expected %d errors, got %d: %v", tt.wantErrs, len(errs), errs)
 
 			if len(tt.errSubstrs) > 0 {
@@ -1806,6 +1913,111 @@ func TestAuthStaticRoleAssignment_Validate(t *testing.T) {
 						require.Contains(errs[i].Error(), substr, "error at index %d should contain %q", i, substr)
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestInlineConfigProviderSpec_Validate_ForbiddenPaths(t *testing.T) {
+	tests := []struct {
+		name    string
+		path    string
+		wantErr bool
+	}{
+		{"reject /var/lib/flightctl", "/var/lib/flightctl/data.txt", true},
+		{"reject /usr/lib/flightctl", "/usr/lib/flightctl/binary", true},
+		{"reject /etc/flightctl/certs", "/etc/flightctl/certs/ca.crt", true},
+		{"reject /etc/flightctl/config.yaml", "/etc/flightctl/config.yaml", true},
+		{"allow /etc/myapp", "/etc/myapp/config.txt", false},
+		{"allow /etc/flightctl custom", "/etc/flightctl/custom.txt", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := InlineConfigProviderSpec{
+				Name:   "test-config",
+				Inline: []FileSpec{{Path: tt.path, Content: "test", Mode: lo.ToPtr(0644)}},
+			}
+
+			errs := spec.Validate(false)
+
+			if tt.wantErr {
+				require.NotEmpty(t, errs)
+			} else {
+				require.Empty(t, errs)
+			}
+		})
+	}
+}
+
+func TestHttpConfigProviderSpec_Validate_ForbiddenPaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		filePath string
+		wantErr  bool
+	}{
+		{"reject /var/lib/flightctl", "/var/lib/flightctl/data.txt", true},
+		{"reject /etc/flightctl/certs", "/etc/flightctl/certs/key.pem", true},
+		{"allow /etc/myapp", "/etc/myapp/config.yaml", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := HttpConfigProviderSpec{
+				Name: "test-http-config",
+				HttpRef: struct {
+					FilePath   string  `json:"filePath"`
+					Repository string  `json:"repository"`
+					Suffix     *string `json:"suffix,omitempty"`
+				}{
+					FilePath:   tt.filePath,
+					Repository: "test-repo",
+				},
+			}
+
+			errs := spec.Validate(false)
+
+			if tt.wantErr {
+				require.NotEmpty(t, errs)
+			} else {
+				require.Empty(t, errs)
+			}
+		})
+	}
+}
+
+func TestKubernetesSecretProviderSpec_Validate_ForbiddenPaths(t *testing.T) {
+	tests := []struct {
+		name      string
+		mountPath string
+		wantErr   bool
+	}{
+		{"reject /etc/flightctl/certs", "/etc/flightctl/certs", true},
+		{"reject /var/lib/flightctl", "/var/lib/flightctl/data", true},
+		{"allow /etc/myapp", "/etc/myapp/secrets", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := KubernetesSecretProviderSpec{
+				Name: "test-k8s-config",
+				SecretRef: struct {
+					MountPath string `json:"mountPath"`
+					Name      string `json:"name"`
+					Namespace string `json:"namespace"`
+				}{
+					MountPath: tt.mountPath,
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+			}
+
+			errs := spec.Validate(false)
+
+			if tt.wantErr {
+				require.NotEmpty(t, errs)
+			} else {
+				require.Empty(t, errs)
 			}
 		})
 	}

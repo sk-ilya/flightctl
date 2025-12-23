@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	api "github.com/flightctl/flightctl/api/v1beta1"
+	"github.com/flightctl/flightctl/internal/consts"
 	"github.com/flightctl/flightctl/internal/flterrors"
 	"github.com/flightctl/flightctl/internal/service"
 	"github.com/flightctl/flightctl/internal/util"
@@ -138,8 +139,7 @@ func (r *ResourceSync) GetRepositoryAndValidateAccess(ctx context.Context, orgId
 
 // ParseFleetsFromResources parses fleets from generic resources
 func (r *ResourceSync) ParseFleetsFromResources(resources []GenericResourceMap, resourceName string) ([]*api.Fleet, error) {
-	owner := util.SetResourceOwner(api.ResourceSyncKind, resourceName)
-	fleets, err := r.parseFleets(resources, owner)
+	fleets, err := r.parseFleets(resources)
 	// Note: We can't set conditions here since we don't have access to rs
 	// The conditions will be set in the calling method
 	if err != nil {
@@ -200,7 +200,7 @@ func (r *ResourceSync) SyncFleets(ctx context.Context, log logrus.FieldLogger, o
 	fleetsToRemove := fleetsDelta(fleetsPreOwned, fleets)
 
 	log.Infof("Resource %s: applying %d fleets ", resourceName, len(fleets))
-	createUpdateErr := r.createOrUpdateMultiple(ctx, orgId, fleets...)
+	createUpdateErr := r.createOrUpdateMultiple(ctx, orgId, owner, fleets...)
 	if errors.Is(createUpdateErr, flterrors.ErrUpdatingResourceWithOwnerNotAllowed) {
 		log.Errorf("one or more fleets are managed by a different resource. %v", createUpdateErr)
 	}
@@ -226,14 +226,31 @@ func (r *ResourceSync) SyncFleets(ctx context.Context, log logrus.FieldLogger, o
 	return createUpdateErr
 }
 
-func (r *ResourceSync) createOrUpdateMultiple(ctx context.Context, orgId uuid.UUID, resources ...*api.Fleet) error {
+func (r *ResourceSync) createOrUpdateMultiple(ctx context.Context, orgId uuid.UUID, owner *string, resources ...*api.Fleet) error {
 	var errs []error
 	for _, resource := range resources {
-		_, status := r.serviceHandler.ReplaceFleet(ctx, orgId, *resource.Metadata.Name, *resource)
+		// Create a context where InternalRequestCtxKey is false so that ReplaceFleet
+		// treats this as an external API request and calls NilOutManagedObjectMetaProperties,
+		// which will nil out annotations. This ensures annotations are not updated by ResourceSync.
+		// Annotations are managed by the service (e.g., fleet-controller/templateVersion)
+		// and should not be overwritten when syncing from YAML.
+		// Set ResourceSyncRequestCtxKey to allow resource sync to update resources it owns.
+		externalCtx := context.WithValue(ctx, consts.InternalRequestCtxKey, false)
+		externalCtx = context.WithValue(externalCtx, consts.ResourceSyncRequestCtxKey, true)
+		updatedFleet, status := r.serviceHandler.ReplaceFleet(externalCtx, orgId, *resource.Metadata.Name, *resource)
 		if status.Code != http.StatusOK && status.Code != http.StatusCreated {
 			if status.Message == flterrors.ErrUpdatingResourceWithOwnerNotAllowed.Error() {
 				errs = append(errs, errors.New("one or more fleets are managed by a different resource"))
 			} else {
+				errs = append(errs, service.ApiStatusToErr(status))
+			}
+		}
+
+		// Update the owner of the fleet if not already set
+		if updatedFleet != nil && util.DefaultIfNil(updatedFleet.Metadata.Owner, "") != util.DefaultIfNil(owner, "") {
+			updatedFleet.Metadata.Owner = owner
+			_, status := r.serviceHandler.ReplaceFleet(ctx, orgId, *resource.Metadata.Name, *updatedFleet)
+			if status.Code != http.StatusOK {
 				errs = append(errs, service.ApiStatusToErr(status))
 			}
 		}
@@ -414,7 +431,7 @@ func removeFieldFromMap(m map[string]interface{}, parts []string) {
 	}
 }
 
-func (r ResourceSync) parseFleets(resources []GenericResourceMap, owner *string) ([]*api.Fleet, error) {
+func (r ResourceSync) parseFleets(resources []GenericResourceMap) ([]*api.Fleet, error) {
 	fleets := make([]*api.Fleet, 0)
 	names := make(map[string]string)
 	for _, resource := range resources {
@@ -445,7 +462,6 @@ func (r ResourceSync) parseFleets(resources []GenericResourceMap, owner *string)
 				return nil, fmt.Errorf("found multiple fleet definitions with name '%s'", name)
 			}
 			names[name] = name
-			fleet.Metadata.Owner = owner
 			fleets = append(fleets, &fleet)
 		default:
 			return nil, fmt.Errorf("resource of unknown/unsupported kind %q: %v", kind, resource)

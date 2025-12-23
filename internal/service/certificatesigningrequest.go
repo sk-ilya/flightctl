@@ -15,8 +15,6 @@ import (
 	"github.com/samber/lo"
 )
 
-const DefaultEnrollmentCertExpirySeconds int32 = 60 * 60 * 24 * 7 // 7 days
-
 // nowFunc allows overriding for unit tests
 var nowFunc = time.Now
 
@@ -157,7 +155,7 @@ func (h *ServiceHandler) CreateCertificateSigningRequest(ctx context.Context, or
 
 	// Support legacy shorthand "enrollment" by replacing it with the configured signer name
 	if csr.Spec.SignerName == "enrollment" {
-		csr.Spec.SignerName = h.ca.Cfg.ClientBootstrapSignerName
+		csr.Spec.SignerName = h.ca.Cfg.DeviceEnrollmentSignerName
 	}
 
 	if errs := csr.Validate(); len(errs) > 0 {
@@ -187,7 +185,7 @@ func (h *ServiceHandler) CreateCertificateSigningRequest(ctx context.Context, or
 		return nil, StoreErrorToApiStatus(err, true, api.CertificateSigningRequestKind, csr.Metadata.Name)
 	}
 
-	if result.Spec.SignerName == h.ca.Cfg.ClientBootstrapSignerName {
+	if result.Spec.SignerName == h.ca.Cfg.DeviceEnrollmentSignerName {
 		h.autoApprove(ctx, orgId, result)
 	}
 
@@ -229,7 +227,7 @@ func (h *ServiceHandler) PatchCertificateSigningRequest(ctx context.Context, org
 
 	// Support legacy shorthand "enrollment" by replacing it with the configured signer name
 	if newObj.Spec.SignerName == "enrollment" {
-		newObj.Spec.SignerName = h.ca.Cfg.ClientBootstrapSignerName
+		newObj.Spec.SignerName = h.ca.Cfg.DeviceEnrollmentSignerName
 	}
 
 	if errs := newObj.Validate(); len(errs) > 0 {
@@ -259,7 +257,7 @@ func (h *ServiceHandler) PatchCertificateSigningRequest(ctx context.Context, org
 		return nil, StoreErrorToApiStatus(err, false, api.CertificateSigningRequestKind, &name)
 	}
 
-	if result.Spec.SignerName == h.ca.Cfg.ClientBootstrapSignerName {
+	if result.Spec.SignerName == h.ca.Cfg.DeviceEnrollmentSignerName {
 		h.autoApprove(ctx, orgId, result)
 	}
 	if api.IsStatusConditionTrue(result.Status.Conditions, api.ConditionTypeCertificateSigningRequestApproved) {
@@ -282,7 +280,7 @@ func (h *ServiceHandler) ReplaceCertificateSigningRequest(ctx context.Context, o
 
 	// Support legacy shorthand "enrollment" by replacing it with the configured signer name
 	if csr.Spec.SignerName == "enrollment" {
-		csr.Spec.SignerName = h.ca.Cfg.ClientBootstrapSignerName
+		csr.Spec.SignerName = h.ca.Cfg.DeviceEnrollmentSignerName
 	}
 
 	if errs := csr.Validate(); len(errs) > 0 {
@@ -313,7 +311,7 @@ func (h *ServiceHandler) ReplaceCertificateSigningRequest(ctx context.Context, o
 		return nil, StoreErrorToApiStatus(err, created, api.CertificateSigningRequestKind, &name)
 	}
 
-	if result.Spec.SignerName == h.ca.Cfg.ClientBootstrapSignerName {
+	if result.Spec.SignerName == h.ca.Cfg.DeviceEnrollmentSignerName {
 		h.autoApprove(ctx, orgId, result)
 	}
 	if api.IsStatusConditionTrue(result.Status.Conditions, api.ConditionTypeCertificateSigningRequestApproved) {
@@ -435,7 +433,7 @@ func populateConditionTimestamps(newCSR, oldCSR *api.CertificateSigningRequest) 
 }
 
 func (h *ServiceHandler) validateAllowedSignersForCSRService(csr *api.CertificateSigningRequest) error {
-	if csr.Spec.SignerName == h.ca.Cfg.DeviceEnrollmentSignerName {
+	if csr.Spec.SignerName == h.ca.Cfg.DeviceManagementSignerName {
 		return fmt.Errorf("signer name %q is not allowed in CertificateSigningRequest service; use the EnrollmentRequest API instead", csr.Spec.SignerName)
 	}
 	return nil

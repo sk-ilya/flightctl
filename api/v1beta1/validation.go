@@ -17,9 +17,7 @@ import (
 	"time"
 
 	"github.com/flightctl/flightctl/internal/api/common"
-	"github.com/flightctl/flightctl/internal/consts"
-	"github.com/flightctl/flightctl/internal/identity"
-	"github.com/flightctl/flightctl/internal/quadlet"
+	"github.com/flightctl/flightctl/internal/contextutil"
 	"github.com/flightctl/flightctl/internal/util"
 	"github.com/flightctl/flightctl/internal/util/validation"
 	"github.com/robfig/cron/v3"
@@ -58,6 +56,7 @@ var (
 	ErrAapProviderConfigOnly                 = errors.New("aap provider type can only be created from configuration, not via API")
 	ErrDynamicOrgMappingAdminOnly            = errors.New("only flightctl-admin users are allowed to create auth providers with dynamic organization mapping")
 	ErrPerUserOrgMappingAdminOnly            = errors.New("only flightctl-admin users are allowed to create auth providers with per-user organization mapping")
+	ErrStaticRoleMappingAdminOnly            = errors.New("only flightctl-admin users are allowed to create static role mappings for flightctl-admin")
 )
 
 type Validator interface {
@@ -381,6 +380,9 @@ func (c KubernetesSecretProviderSpec) Validate(fleetTemplate bool) []error {
 	allErrs = append(allErrs, paramErrs...)
 	if !containsParams {
 		allErrs = append(allErrs, validation.ValidateFilePath(&c.SecretRef.MountPath, "spec.config[].secretRef.mountPath")...)
+		if err := validation.DenyForbiddenDevicePath(c.SecretRef.MountPath); err != nil {
+			allErrs = append(allErrs, fmt.Errorf("spec.config[].secretRef.mountPath: %w", err))
+		}
 	}
 
 	return allErrs
@@ -394,6 +396,9 @@ func (c InlineConfigProviderSpec) Validate(fleetTemplate bool) []error {
 		allErrs = append(allErrs, paramErrs...)
 		if !containsParams {
 			allErrs = append(allErrs, validation.ValidateFilePath(&c.Inline[i].Path, fmt.Sprintf("spec.config[].inline[%d].path", i))...)
+			if err := validation.DenyForbiddenDevicePath(c.Inline[i].Path); err != nil {
+				allErrs = append(allErrs, fmt.Errorf("spec.config[].inline[%d].path: %w", i, err))
+			}
 		}
 
 		allErrs = append(allErrs, validation.ValidateLinuxUserGroup(c.Inline[i].User, fmt.Sprintf("spec.config[].inline[%d].user", i))...)
@@ -428,6 +433,9 @@ func (h HttpConfigProviderSpec) Validate(fleetTemplate bool) []error {
 	allErrs = append(allErrs, paramErrs...)
 	if !containsParams {
 		allErrs = append(allErrs, validation.ValidateFilePath(&h.HttpRef.FilePath, "spec.config[].httpRef.filePath")...)
+		if err := validation.DenyForbiddenDevicePath(h.HttpRef.FilePath); err != nil {
+			allErrs = append(allErrs, fmt.Errorf("spec.config[].httpRef.filePath: %w", err))
+		}
 	}
 
 	containsParams, paramErrs = validateParametersInString(h.HttpRef.Suffix, "spec.config[].httpRef.suffix", fleetTemplate)
@@ -630,10 +638,8 @@ func (u UpdateSchedule) Validate() []error {
 		allErrs = append(allErrs, fmt.Errorf("invalid cron schedule: %s", err))
 	}
 
-	if u.StartGraceDuration != nil {
-		if err := validateGraceDuration(schedule, *u.StartGraceDuration); err != nil {
-			allErrs = append(allErrs, err)
-		}
+	if err := validateGraceDuration(schedule, u.StartGraceDuration); err != nil {
+		allErrs = append(allErrs, err)
 	}
 
 	return allErrs
@@ -787,6 +793,16 @@ func (a ApplicationProviderSpec) Validate() []error {
 func (a InlineApplicationProviderSpec) Validate(appType AppType, fleetTemplate bool) []error {
 	allErrs := []error{}
 
+	var appValidator applicationValidator
+	switch appType {
+	case AppTypeCompose:
+		appValidator = &composeValidator{paths: make(map[string]struct{})}
+	case AppTypeQuadlet:
+		appValidator = &quadletValidator{quadlets: make(map[string]*common.QuadletReferences)}
+	default:
+		appValidator = &unknownAppTypeValidator{appType}
+	}
+
 	seenPath := make(map[string]struct{}, len(a.Inline))
 	for i := range a.Inline {
 		path := a.Inline[i].Path
@@ -796,28 +812,14 @@ func (a InlineApplicationProviderSpec) Validate(appType AppType, fleetTemplate b
 		} else {
 			seenPath[path] = struct{}{}
 		}
-		allErrs = append(allErrs, a.Inline[i].Validate(i, appType, fleetTemplate)...)
+		allErrs = append(allErrs, a.Inline[i].Validate(i, appValidator, fleetTemplate)...)
 	}
 
-	paths := make([]string, 0, len(seenPath))
-	for path := range seenPath {
-		paths = append(paths, path)
-	}
-	var pathErr error
-	switch appType {
-	case AppTypeCompose:
-		pathErr = validation.ValidateComposePaths(paths)
-	case AppTypeQuadlet:
-		pathErr = validation.ValidateQuadletPaths(paths)
-	}
-	if pathErr != nil {
-		allErrs = append(allErrs, fmt.Errorf("spec.applications[].inline[].path: %w", pathErr))
-	}
-
+	allErrs = append(allErrs, appValidator.Validate()...)
 	return allErrs
 }
 
-func (c ApplicationContent) Validate(index int, appType AppType, fleetTemplate bool) []error {
+func (c ApplicationContent) Validate(index int, appValidator applicationValidator, fleetTemplate bool) []error {
 	var allErrs []error
 	pathPrefix := fmt.Sprintf("spec.applications[].inline[%d]", index)
 
@@ -856,7 +858,7 @@ func (c ApplicationContent) Validate(index int, appType AppType, fleetTemplate b
 	allErrs = append(allErrs, validation.ValidateString(&decodedStr, contentPath, 0, maxInlineLength, nil, "")...)
 	_, paramErrs = validateParametersInString(&decodedStr, contentPath, fleetTemplate)
 	allErrs = append(allErrs, paramErrs...)
-	allErrs = append(allErrs, ValidateApplicationContent(decodedBytes, appType, c.Path)...)
+	allErrs = append(allErrs, appValidator.ValidateContents(c.Path, decodedBytes, fleetTemplate)...)
 
 	return allErrs
 }
@@ -867,32 +869,6 @@ func (c ApplicationContent) IsBase64() bool {
 
 func (c ApplicationContent) IsPlain() bool {
 	return c.ContentEncoding == nil || *c.ContentEncoding == EncodingPlain
-}
-
-func ValidateApplicationContent(content []byte, appType AppType, path string) []error {
-	var allErrs []error
-	switch appType {
-	case AppTypeCompose:
-		composeSpec, err := common.ParseComposeSpec(content)
-		if err != nil {
-			return []error{fmt.Errorf("parse compose spec: %w", err)}
-		}
-		allErrs = append(allErrs, validation.ValidateComposeSpec(composeSpec)...)
-	case AppTypeQuadlet:
-		// Quadlet apps can come with misc files, so only validate that the quadlet files are defined correctly
-		if quadlet.IsQuadletFile(path) {
-			quadletSpec, err := common.ParseQuadletReferences(content)
-			if err != nil {
-				allErrs = append(allErrs, fmt.Errorf("parse quadlet spec %q: %w", path, err))
-			} else {
-				allErrs = append(allErrs, validation.ValidateQuadletSpec(quadletSpec, path)...)
-			}
-		}
-	default:
-		allErrs = append(allErrs, fmt.Errorf("unsupported application type: %s", appType))
-	}
-
-	return allErrs
 }
 
 func validateApplications(apps []ApplicationProviderSpec, fleetTemplate bool) []error {
@@ -996,6 +972,10 @@ func ValidateContainerImageApplicationSpec(appName string, spec *ImageApplicatio
 
 func validateVolume(vol ApplicationVolume, path string, fleetTemplate bool, appType AppType) []error {
 	var errs []error
+
+	if vol.ReclaimPolicy != nil && *vol.ReclaimPolicy != Retain {
+		errs = append(errs, fmt.Errorf("%s.reclaimPolicy: only %q is supported", path, Retain))
+	}
 
 	providerType, err := vol.Type()
 	if err != nil {
@@ -1433,20 +1413,9 @@ func (o *OAuth2ProviderSpec) Validate(ctx context.Context, isUpdate bool) []erro
 		allErrs = append(allErrs, ErrClientIdRequired)
 	}
 
-	// Handle introspection field validation
+	// Validate introspection field is present
 	if o.Introspection == nil {
-		if !isUpdate {
-			// During creation, try to infer introspection
-			introspection, err := InferOAuth2IntrospectionConfig(*o)
-			if err != nil {
-				allErrs = append(allErrs, fmt.Errorf("introspection field is required and could not be inferred: %w", err))
-			} else {
-				o.Introspection = introspection
-			}
-		} else {
-			// During update, introspection is required and cannot be nil
-			allErrs = append(allErrs, fmt.Errorf("introspection field is required for OAuth2 providers"))
-		}
+		allErrs = append(allErrs, fmt.Errorf("introspection field is required for OAuth2 providers"))
 	}
 
 	// Validate organization assignment
@@ -1482,13 +1451,6 @@ func (a *AuthProviderSpec) Validate(ctx context.Context, isUpdate bool) []error 
 			allErrs = append(allErrs, fmt.Errorf("invalid OAuth2 provider spec: %w", err))
 		} else {
 			allErrs = append(allErrs, (&oauth2Spec).Validate(ctx, isUpdate)...)
-			// Write back the mutated spec (with inferred introspection) to the union
-			// Only merge if not updating (to preserve user-provided values during updates)
-			if !isUpdate {
-				if mergeErr := a.MergeOAuth2ProviderSpec(oauth2Spec); mergeErr != nil {
-					allErrs = append(allErrs, fmt.Errorf("failed to update OAuth2 provider spec: %w", mergeErr))
-				}
-			}
 		}
 	case string(K8s):
 		allErrs = append(allErrs, ErrK8sProviderConfigOnly)
@@ -1594,16 +1556,9 @@ func (a AuthStaticOrganizationAssignment) Validate(ctx context.Context) []error 
 	}
 
 	// For non-admin users, validate that the static organization matches their current organization
-	// Access mapped identity directly from context
-	mappedIdentityVal := ctx.Value(consts.MappedIdentityCtxKey)
-	if mappedIdentityVal == nil {
-		allErrs = append(allErrs, ErrMappedIdentityNotFound)
-		return allErrs
-	}
-
-	mappedIdentity, ok := mappedIdentityVal.(*identity.MappedIdentity)
+	mappedIdentity, ok := contextutil.GetMappedIdentityFromContext(ctx)
 	if !ok {
-		allErrs = append(allErrs, ErrInvalidMappedIdentityType)
+		allErrs = append(allErrs, ErrMappedIdentityNotFound)
 		return allErrs
 	}
 
@@ -1642,16 +1597,9 @@ func (a AuthDynamicOrganizationAssignment) Validate(ctx context.Context) []error
 	}
 
 	// Only flightctl-admin is allowed to create auth providers with dynamic org mapping
-	// Access mapped identity directly from context
-	mappedIdentityVal := ctx.Value(consts.MappedIdentityCtxKey)
-	if mappedIdentityVal == nil {
-		allErrs = append(allErrs, ErrMappedIdentityNotFound)
-		return allErrs
-	}
-
-	mappedIdentity, ok := mappedIdentityVal.(*identity.MappedIdentity)
+	mappedIdentity, ok := contextutil.GetMappedIdentityFromContext(ctx)
 	if !ok {
-		allErrs = append(allErrs, ErrInvalidMappedIdentityType)
+		allErrs = append(allErrs, ErrMappedIdentityNotFound)
 		return allErrs
 	}
 
@@ -1670,16 +1618,9 @@ func (a AuthPerUserOrganizationAssignment) Validate(ctx context.Context) []error
 	// The organization name will be generated from the user's identity
 
 	// Only flightctl-admin is allowed to create auth providers with per-user org mapping
-	// Access mapped identity directly from context
-	mappedIdentityVal := ctx.Value(consts.MappedIdentityCtxKey)
-	if mappedIdentityVal == nil {
-		allErrs = append(allErrs, ErrMappedIdentityNotFound)
-		return allErrs
-	}
-
-	mappedIdentity, ok := mappedIdentityVal.(*identity.MappedIdentity)
+	mappedIdentity, ok := contextutil.GetMappedIdentityFromContext(ctx)
 	if !ok {
-		allErrs = append(allErrs, ErrInvalidMappedIdentityType)
+		allErrs = append(allErrs, ErrMappedIdentityNotFound)
 		return allErrs
 	}
 
@@ -1737,6 +1678,28 @@ func (a AuthStaticRoleAssignment) Validate(ctx context.Context) []error {
 		}
 		if !slices.Contains(KnownExternalRoles, role) {
 			allErrs = append(allErrs, fmt.Errorf("role at index %d is not a valid role: %s", i, role))
+		}
+	}
+
+	// Check if any role is flightctl-admin - only super admins can create static mappings for this role
+	hasAdminRole := false
+	for _, role := range a.Roles {
+		if role == ExternalRoleAdmin {
+			hasAdminRole = true
+			break
+		}
+	}
+
+	if hasAdminRole {
+		mappedIdentity, ok := contextutil.GetMappedIdentityFromContext(ctx)
+		if !ok {
+			allErrs = append(allErrs, ErrMappedIdentityNotFound)
+			return allErrs
+		}
+
+		// Only super admin users can create static role mappings for flightctl-admin
+		if !mappedIdentity.IsSuperAdmin() {
+			allErrs = append(allErrs, ErrStaticRoleMappingAdminOnly)
 		}
 	}
 

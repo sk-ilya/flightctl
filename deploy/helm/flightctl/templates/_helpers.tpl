@@ -116,6 +116,14 @@ app.kubernetes.io/version: {{ .Chart.AppVersion }}
   {{- end }}
 {{- end }}
 
+{{- define "flightctl.getOpenShiftProjectLabelFilter" }}
+  {{- if .Values.global.auth.openshift.projectLabelFilter }}
+    {{- printf .Values.global.auth.openshift.projectLabelFilter }}
+  {{- else }}
+    {{- printf "io.flightctl/instance=%s" .Release.Name }}
+  {{- end }}
+{{- end }}
+
 {{/*
 Get the OAuth client secret from values or lookup existing secret.
 Uses a cached value in .Values to ensure consistency across all template evaluations.
@@ -258,7 +266,7 @@ Usage: {{- $authType := include "flightctl.getEffectiveAuthType" . }}
   {{- $scheme := (include "flightctl.getHttpScheme" . )}}
   {{- $exposeMethod := (include "flightctl.getServiceExposeMethod" . )}}
   {{- if eq $exposeMethod "nodePort" }}
-    {{- printf "%s://flightctl-alertmanager-proxy:8443" $scheme }}
+    {{- printf "https://flightctl-alertmanager-proxy:8443" }}
   {{- else if eq $exposeMethod "gateway" }}
     {{- if and (eq $scheme "http") (not (eq (int .Values.global.gateway.ports.http) 80))}}
       {{- printf "%s://alertmanager-proxy.%s:%v" $scheme $baseDomain .Values.global.gateway.ports.http }}

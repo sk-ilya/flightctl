@@ -151,6 +151,12 @@ type PAMOIDCIssuer struct {
 	// RefreshTokenExpiration is the expiration duration for refresh tokens
 	// Default: 7 days
 	RefreshTokenExpiration util.Duration `json:"refreshTokenExpiration,omitempty"`
+	// PendingSessionCookieMaxAge is the MaxAge duration for pending session cookies
+	// Default: 10 minutes
+	PendingSessionCookieMaxAge util.Duration `json:"pendingSessionCookieMaxAge,omitempty"`
+	// AuthenticatedSessionCookieMaxAge is the MaxAge duration for authenticated session cookies
+	// Default: 30 minutes
+	AuthenticatedSessionCookieMaxAge util.Duration `json:"authenticatedSessionCookieMaxAge,omitempty"`
 }
 
 type metricsConfig struct {
@@ -386,7 +392,7 @@ func NewDefault(opts ...ConfigOption) *Config {
 			BaseUrl:                "https://localhost:3443",
 			BaseAgentEndpointUrl:   "https://localhost:7443",
 			ServerCertName:         "server",
-			ServerCertValidityDays: 365,
+			ServerCertValidityDays: 730,
 			LogLevel:               "info",
 			HttpReadTimeout:        util.Duration(5 * time.Minute),
 			HttpReadHeaderTimeout:  util.Duration(5 * time.Minute),
@@ -556,6 +562,7 @@ func applyAuthDefaults(c *Config) error {
 	applyAuthProviderEnabledDefaults(c.Auth)
 	applyPAMOIDCIssuerDefaults(c)
 	applyOIDCClientDefaults(c)
+	applyOpenShiftDefaults(c)
 	if err := applyOAuth2Defaults(c); err != nil {
 		return err
 	}
@@ -611,6 +618,12 @@ func applyPAMOIDCIssuerDefaults(c *Config) {
 	if c.Auth.PAMOIDCIssuer.RefreshTokenExpiration == 0 {
 		c.Auth.PAMOIDCIssuer.RefreshTokenExpiration = util.Duration(7 * 24 * time.Hour)
 	}
+	if c.Auth.PAMOIDCIssuer.PendingSessionCookieMaxAge == 0 {
+		c.Auth.PAMOIDCIssuer.PendingSessionCookieMaxAge = util.Duration(10 * time.Minute)
+	}
+	if c.Auth.PAMOIDCIssuer.AuthenticatedSessionCookieMaxAge == 0 {
+		c.Auth.PAMOIDCIssuer.AuthenticatedSessionCookieMaxAge = util.Duration(30 * time.Minute)
+	}
 }
 
 func applyPAMOIDCIssuerRedirectURIDefaults(c *Config) {
@@ -659,6 +672,19 @@ func applyOIDCOrganizationAssignmentDefaults(oidc *api.OIDCProviderSpec) {
 			Type:             api.AuthStaticOrganizationAssignmentTypeStatic,
 		}
 		_ = oidc.OrganizationAssignment.FromAuthStaticOrganizationAssignment(staticAssignment)
+	}
+}
+
+func applyOpenShiftDefaults(c *Config) {
+	if c.Auth.OpenShift == nil {
+		return
+	}
+
+	// Use authorizationUrl as issuer if issuer is not provided
+	if c.Auth.OpenShift.Issuer == nil || *c.Auth.OpenShift.Issuer == "" {
+		if c.Auth.OpenShift.AuthorizationUrl != nil {
+			c.Auth.OpenShift.Issuer = c.Auth.OpenShift.AuthorizationUrl
+		}
 	}
 }
 

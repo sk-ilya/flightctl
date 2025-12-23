@@ -27,6 +27,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 	var (
 		log               *logrus.Logger
 		ctx               context.Context
+		internalCtx       context.Context
 		orgId             uuid.UUID
 		storeInst         store.Store
 		serviceHandler    service.Service
@@ -40,7 +41,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 
 	BeforeEach(func() {
 		ctx = testutil.StartSpecTracerForGinkgo(suiteCtx)
-		ctx = context.WithValue(ctx, consts.InternalRequestCtxKey, true)
+		internalCtx = context.WithValue(ctx, consts.InternalRequestCtxKey, true)
 		orgId = store.NullOrgId
 		log = flightlog.InitLogs()
 		storeInst, cfg, dbName, _ = store.PrepareDBForUnitTests(ctx, log)
@@ -139,7 +140,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			rs := createTestResourceSync(resourceSyncName, "test-repo", "/examples")
 
 			// Test the helper method
-			repo, err := resourceSync.GetRepositoryAndValidateAccess(ctx, orgId, rs)
+			repo, err := resourceSync.GetRepositoryAndValidateAccess(internalCtx, orgId, rs)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(repo).ToNot(BeNil())
 
@@ -159,7 +160,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			rs := createTestResourceSync(resourceSyncName, "non-existent-repo", "/examples")
 
 			// Test the helper method
-			repo, err := resourceSync.GetRepositoryAndValidateAccess(ctx, orgId, rs)
+			repo, err := resourceSync.GetRepositoryAndValidateAccess(internalCtx, orgId, rs)
 			Expect(err).To(HaveOccurred())
 			Expect(repo).To(BeNil())
 
@@ -259,7 +260,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			}
 
 			// Test the helper method
-			err := resourceSync.SyncFleets(ctx, log, orgId, rs, fleets, "sync-test-resourcesync")
+			err := resourceSync.SyncFleets(internalCtx, log, orgId, rs, fleets, "sync-test-resourcesync")
 			Expect(err).ToNot(HaveOccurred())
 
 			// Verify conditions were set
@@ -269,6 +270,50 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			syncedCondition := api.FindStatusCondition(rs.Status.Conditions, api.ConditionTypeResourceSyncSynced)
 			Expect(syncedCondition).ToNot(BeNil())
 			Expect(syncedCondition.Status).To(Equal(api.ConditionStatusTrue))
+		})
+
+		It("should set owner on fleets created by ResourceSync", func() {
+			// Create repository and ResourceSync
+			createTestRepository("owner-test-repo", "https://github.com/test/repo")
+			rs := createTestResourceSync("owner-test-resourcesync", "owner-test-repo", "/examples")
+
+			// Create test fleet with owner already set (as parseFleets does)
+			fleets := []*api.Fleet{
+				{
+					Metadata: api.ObjectMeta{
+						Name: lo.ToPtr("owned-fleet"),
+					},
+					Spec: api.FleetSpec{
+						Template: struct {
+							Metadata *api.ObjectMeta `json:"metadata,omitempty"`
+							Spec     api.DeviceSpec  `json:"spec"`
+						}{
+							Spec: api.DeviceSpec{
+								Os: &api.DeviceOsSpec{
+									Image: "quay.io/test/os:latest",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			// Sync fleets
+			err := resourceSync.SyncFleets(internalCtx, log, orgId, rs, fleets, "owner-test-resourcesync")
+			Expect(err).ToNot(HaveOccurred())
+
+			// Verify the fleet was created with the owner set
+			createdFleet, status := serviceHandler.GetFleet(ctx, orgId, "owned-fleet", api.GetFleetParams{})
+			Expect(status.Code).To(Equal(int32(200)))
+			Expect(createdFleet.Metadata.Owner).ToNot(BeNil())
+			Expect(*createdFleet.Metadata.Owner).To(Equal("ResourceSync/owner-test-resourcesync"))
+
+			// Verify the fleet cannot be edited (spec update should fail)
+			updatedFleet := *createdFleet
+			updatedFleet.Spec.Template.Spec.Os.Image = "quay.io/test/os:updated"
+			_, status = serviceHandler.ReplaceFleet(ctx, orgId, "owned-fleet", updatedFleet)
+			Expect(status.Code).To(Equal(int32(409))) // Conflict
+			Expect(status.Message).To(ContainSubstring("updating the resource is not allowed because it has an owner"))
 		})
 
 		It("should handle fleet name conflicts", func() {
@@ -300,8 +345,8 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			_, status := serviceHandler.CreateFleet(ctx, orgId, *conflictingFleet)
 			Expect(status.Code).To(Equal(int32(201)))
 
-			// Update the fleet to set the owner
-			_, status = serviceHandler.ReplaceFleet(ctx, orgId, *conflictingFleet.Metadata.Name, *conflictingFleet)
+			// Update the fleet to set the owner (use internalCtx so owner is preserved)
+			_, status = serviceHandler.ReplaceFleet(internalCtx, orgId, *conflictingFleet.Metadata.Name, *conflictingFleet)
 			Expect(status.Code).To(Equal(int32(200)))
 
 			// Verify the fleet was created with the correct owner
@@ -332,7 +377,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			}
 
 			// Test the helper method
-			err := resourceSync.SyncFleets(ctx, log, orgId, rs, fleets, "conflict-test-resourcesync")
+			err := resourceSync.SyncFleets(internalCtx, log, orgId, rs, fleets, "conflict-test-resourcesync")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("fleet name(s)"))
 		})
@@ -348,7 +393,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			rs := createTestResourceSync(resourceSyncName, "event-test-repo", "/examples")
 
 			// Call the helper method
-			_, err := resourceSync.GetRepositoryAndValidateAccess(ctx, orgId, rs)
+			_, err := resourceSync.GetRepositoryAndValidateAccess(internalCtx, orgId, rs)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Update the status to trigger event emission
@@ -371,7 +416,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			rs := createTestResourceSync(resourceSyncName, "non-existent-repo", "/examples")
 
 			// Call the helper method
-			_, err := resourceSync.GetRepositoryAndValidateAccess(ctx, orgId, rs)
+			_, err := resourceSync.GetRepositoryAndValidateAccess(internalCtx, orgId, rs)
 			Expect(err).To(HaveOccurred())
 
 			// Update the status to trigger event emission
@@ -396,7 +441,7 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 
 			// Call the helper method
 			rs, _ := serviceHandler.GetResourceSync(ctx, orgId, resourceSyncName)
-			_, err := resourceSync.GetRepositoryAndValidateAccess(ctx, orgId, rs)
+			_, err := resourceSync.GetRepositoryAndValidateAccess(internalCtx, orgId, rs)
 			Expect(err).ToNot(HaveOccurred())
 
 			events := getEventsForResourceSync(resourceSyncName)
@@ -773,6 +818,168 @@ var _ = Describe("ResourceSync Task Integration Tests", func() {
 			fleet := fleets[0]
 			Expect(*fleet.Metadata.Name).To(Equal("test-fleet"))
 			Expect(fleet.Metadata.ResourceVersion).To(BeNil())
+		})
+	})
+
+	Context("ResourceSync Annotation Preservation", func() {
+		It("should preserve existing annotations when syncing fleet YAML without annotations", func() {
+			// Create a repository and ResourceSync
+			createTestRepository("annotation-preserve-repo", "https://github.com/test/repo")
+			rs := createTestResourceSync("annotation-preserve-resourcesync", "annotation-preserve-repo", "/examples")
+
+			// Create a fleet with a system-managed annotation (simulating what fleet validation would set)
+			fleetName := "annotation-test-fleet"
+			fleet := &api.Fleet{
+				Metadata: api.ObjectMeta{
+					Name: lo.ToPtr(fleetName),
+					Annotations: &map[string]string{
+						api.FleetAnnotationTemplateVersion: "test-template-version-1",
+					},
+				},
+				Spec: api.FleetSpec{
+					Template: struct {
+						Metadata *api.ObjectMeta `json:"metadata,omitempty"`
+						Spec     api.DeviceSpec  `json:"spec"`
+					}{
+						Spec: api.DeviceSpec{
+							Os: &api.DeviceOsSpec{
+								Image: "quay.io/test/os:latest",
+							},
+						},
+					},
+				},
+			}
+
+			// Create the fleet first
+			_, status := serviceHandler.CreateFleet(ctx, orgId, *fleet)
+			Expect(status.Code).To(Equal(int32(201)))
+
+			// Set the annotation using UpdateFleetAnnotations (simulating fleet validation)
+			status = serviceHandler.UpdateFleetAnnotations(ctx, orgId, fleetName, map[string]string{
+				api.FleetAnnotationTemplateVersion: "test-template-version-1",
+			}, nil)
+			Expect(status.Code).To(Equal(int32(200)))
+
+			// Verify the annotation exists
+			createdFleet, status := serviceHandler.GetFleet(ctx, orgId, fleetName, api.GetFleetParams{})
+			Expect(status.Code).To(Equal(int32(200)))
+			Expect(createdFleet.Metadata.Annotations).ToNot(BeNil())
+			Expect((*createdFleet.Metadata.Annotations)[api.FleetAnnotationTemplateVersion]).To(Equal("test-template-version-1"))
+
+			// Now simulate syncing from YAML that has no annotations defined (like the user's case)
+			// This simulates what happens when ResourceSync parses a fleet YAML with no annotations field
+			fleetFromYAML := []*api.Fleet{
+				{
+					Metadata: api.ObjectMeta{
+						Name:        lo.ToPtr(fleetName),
+						Labels:      &map[string]string{}, // YAML has labels: {}
+						Annotations: nil,                  // YAML doesn't define annotations at all
+					},
+					Spec: api.FleetSpec{
+						Template: struct {
+							Metadata *api.ObjectMeta `json:"metadata,omitempty"`
+							Spec     api.DeviceSpec  `json:"spec"`
+						}{
+							Spec: api.DeviceSpec{
+								Os: &api.DeviceOsSpec{
+									Image: "quay.io/test/os:latest",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			// Sync the fleet from YAML
+			err := resourceSync.SyncFleets(internalCtx, log, orgId, rs, fleetFromYAML, "annotation-preserve-resourcesync")
+			Expect(err).ToNot(HaveOccurred())
+
+			// Verify the annotation is still preserved
+			updatedFleet, status := serviceHandler.GetFleet(ctx, orgId, fleetName, api.GetFleetParams{})
+			Expect(status.Code).To(Equal(int32(200)))
+			Expect(updatedFleet.Metadata.Annotations).ToNot(BeNil())
+			Expect((*updatedFleet.Metadata.Annotations)[api.FleetAnnotationTemplateVersion]).To(Equal("test-template-version-1"))
+		})
+
+		It("should ignore user-defined annotations in fleet YAML", func() {
+			// Create a repository and ResourceSync
+			createTestRepository("annotation-ignore-repo", "https://github.com/test/repo")
+			rs := createTestResourceSync("annotation-ignore-resourcesync", "annotation-ignore-repo", "/examples")
+
+			// Create a fleet first (without annotations)
+			fleetName := "annotation-ignore-test-fleet"
+			fleet := &api.Fleet{
+				Metadata: api.ObjectMeta{
+					Name: lo.ToPtr(fleetName),
+				},
+				Spec: api.FleetSpec{
+					Template: struct {
+						Metadata *api.ObjectMeta `json:"metadata,omitempty"`
+						Spec     api.DeviceSpec  `json:"spec"`
+					}{
+						Spec: api.DeviceSpec{
+							Os: &api.DeviceOsSpec{
+								Image: "quay.io/test/os:latest",
+							},
+						},
+					},
+				},
+			}
+
+			// Create the fleet first
+			_, status := serviceHandler.CreateFleet(ctx, orgId, *fleet)
+			Expect(status.Code).To(Equal(int32(201)))
+
+			// Set a system-managed annotation (simulating fleet validation)
+			status = serviceHandler.UpdateFleetAnnotations(ctx, orgId, fleetName, map[string]string{
+				api.FleetAnnotationTemplateVersion: "system-template-version",
+			}, nil)
+			Expect(status.Code).To(Equal(int32(200)))
+
+			// Now simulate syncing from YAML that has user-defined annotations
+			// These should be ignored - only system annotations should remain
+			fleetFromYAML := []*api.Fleet{
+				{
+					Metadata: api.ObjectMeta{
+						Name: lo.ToPtr(fleetName),
+						Annotations: &map[string]string{
+							"user-defined-annotation": "user-value",
+							"another-user-annotation": "another-value",
+						},
+					},
+					Spec: api.FleetSpec{
+						Template: struct {
+							Metadata *api.ObjectMeta `json:"metadata,omitempty"`
+							Spec     api.DeviceSpec  `json:"spec"`
+						}{
+							Spec: api.DeviceSpec{
+								Os: &api.DeviceOsSpec{
+									Image: "quay.io/test/os:latest",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			// Sync the fleet from YAML
+			err := resourceSync.SyncFleets(internalCtx, log, orgId, rs, fleetFromYAML, "annotation-ignore-resourcesync")
+			Expect(err).ToNot(HaveOccurred())
+
+			// Verify that user-defined annotations were ignored
+			updatedFleet, status := serviceHandler.GetFleet(ctx, orgId, fleetName, api.GetFleetParams{})
+			Expect(status.Code).To(Equal(int32(200)))
+			Expect(updatedFleet.Metadata.Annotations).ToNot(BeNil())
+
+			// System annotation should still exist
+			Expect((*updatedFleet.Metadata.Annotations)[api.FleetAnnotationTemplateVersion]).To(Equal("system-template-version"))
+
+			// User-defined annotations should NOT exist
+			_, hasUserAnnotation := (*updatedFleet.Metadata.Annotations)["user-defined-annotation"]
+			Expect(hasUserAnnotation).To(BeFalse())
+
+			_, hasAnotherUserAnnotation := (*updatedFleet.Metadata.Annotations)["another-user-annotation"]
+			Expect(hasAnotherUserAnnotation).To(BeFalse())
 		})
 	})
 })
