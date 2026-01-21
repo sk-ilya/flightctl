@@ -377,7 +377,7 @@ func (c *Config) GetImageBuilderServer() string {
 }
 
 // NewHTTPClientFromConfig returns a new HTTP Client from the given config.
-func NewHTTPClientFromConfig(config *Config) (*http.Client, error) {
+func NewHTTPClientFromConfig(config *Config, opts ...versioning.TransportOption) (*http.Client, error) {
 	config = config.DeepCopy()
 	if err := config.Flatten(); err != nil {
 		return nil, err
@@ -424,7 +424,8 @@ func NewHTTPClientFromConfig(config *Config) (*http.Client, error) {
 	}
 
 	// Wrap transport with versioning to inject API version header (after HTTPOptions)
-	httpClient.Transport = versioning.NewTransport(httpClient.Transport, versioning.WithAPIV1Beta1())
+	transportOpts := append([]versioning.TransportOption{versioning.WithAPIV1Beta1()}, opts...)
+	httpClient.Transport = versioning.NewTransport(httpClient.Transport, transportOpts...)
 
 	return httpClient, nil
 }

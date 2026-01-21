@@ -4,10 +4,14 @@ import (
 	"context"
 	"crypto/x509"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/flightctl/flightctl/api/versioning"
 	apiclient "github.com/flightctl/flightctl/internal/api/client"
 	"github.com/flightctl/flightctl/internal/config/ca"
 	"github.com/flightctl/flightctl/internal/consts"
@@ -182,4 +186,36 @@ func TestClientConfig(t *testing.T) {
 			require.True(caPool.Equal(httpTransport.TLSClientConfig.RootCAs))
 		})
 	}
+}
+
+func TestNewHTTPClientFromConfig_DeprecationPrintf(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(versioning.HeaderDeprecation, "@1")
+		w.Header().Set(versioning.HeaderAPIVersion, versioning.V1Beta1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	cfg := &Config{
+		Service: Service{
+			Server: server.URL,
+		},
+	}
+
+	var called atomic.Int64
+	httpClient, err := NewHTTPClientFromConfig(cfg, versioning.WithDeprecationPrintf(func(format string, args ...any) {
+		called.Add(1)
+	}))
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+	resp, err := httpClient.Do(req.WithContext(ctx))
+	require.NoError(t, err)
+	resp.Body.Close()
+
+	require.Greater(t, called.Load(), int64(0))
 }

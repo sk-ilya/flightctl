@@ -416,7 +416,7 @@ func (o *LoginOptions) getAbsAuthCAFile() (string, error) {
 // validateTokenWithServer validates the token with the server, handling TLS prompts and a single retry
 func (o *LoginOptions) validateTokenWithServer(ctx context.Context, token string) (*apiClient.ClientWithResponses, error) {
 	// Create HTTP client without the GetAccessToken request editor to avoid potential deadlock
-	httpClient, err := client.NewHTTPClientFromConfig(o.clientConfig)
+	httpClient, err := client.NewHTTPClientFromConfig(o.clientConfig, o.versioningTransportOptions()...)
 	if err != nil {
 		return nil, fmt.Errorf("creating HTTP client: %w", err)
 	}
@@ -588,7 +588,7 @@ func (o *LoginOptions) showProviders(ctx context.Context) error {
 }
 
 func (o *LoginOptions) getAuthConfig(ctx context.Context) (*v1beta1.AuthConfig, error) {
-	httpClient, err := client.NewHTTPClientFromConfig(o.clientConfig)
+	httpClient, err := client.NewHTTPClientFromConfig(o.clientConfig, o.versioningTransportOptions()...)
 	if err != nil {
 		// Translate TLS configuration errors and optionally prompt to proceed insecurely
 		errorInfo := classifyTLSError(err)
@@ -596,7 +596,7 @@ func (o *LoginOptions) getAuthConfig(ctx context.Context) (*v1beta1.AuthConfig, 
 			if o.promptUseInsecure(errorInfo) {
 				o.enableInsecure()
 				// rebuild client with insecure
-				httpClient, err = client.NewHTTPClientFromConfig(o.clientConfig)
+				httpClient, err = client.NewHTTPClientFromConfig(o.clientConfig, o.versioningTransportOptions()...)
 			}
 		}
 		if err != nil {
@@ -642,7 +642,7 @@ func (o *LoginOptions) getAuthConfig(ctx context.Context) (*v1beta1.AuthConfig, 
 			if o.promptUseInsecure(errorInfo) {
 				o.enableInsecure()
 				// retry once
-				httpClient, herr := client.NewHTTPClientFromConfig(o.clientConfig)
+				httpClient, herr := client.NewHTTPClientFromConfig(o.clientConfig, o.versioningTransportOptions()...)
 				if herr == nil {
 					c, herr = apiClient.NewClientWithResponses(
 						client.JoinServerURL(o.clientConfig.Service.Server, apiClient.ServerUrlApiv1),

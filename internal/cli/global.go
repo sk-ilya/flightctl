@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/flightctl/flightctl/api/versioning"
 	apiclient "github.com/flightctl/flightctl/internal/api/client"
 	imagebuilderclient "github.com/flightctl/flightctl/internal/api/imagebuilder/client"
 	"github.com/flightctl/flightctl/internal/auth/common"
@@ -27,19 +28,21 @@ const (
 )
 
 type GlobalOptions struct {
-	ConfigDir      string
-	ConfigFilePath string
-	Context        string
-	Organization   string
-	RequestTimeout int
+	ConfigDir        string
+	ConfigFilePath   string
+	Context          string
+	Organization     string
+	RequestTimeout   int
+	NoWarnDeprecated bool
 }
 
 func DefaultGlobalOptions() GlobalOptions {
 	return GlobalOptions{
-		ConfigFilePath: filepath.Clean(ConfigFilePath("", "")),
-		Context:        "",
-		Organization:   "",
-		RequestTimeout: 0,
+		ConfigFilePath:   filepath.Clean(ConfigFilePath("", "")),
+		Context:          "",
+		Organization:     "",
+		RequestTimeout:   0,
+		NoWarnDeprecated: false,
 	}
 }
 
@@ -48,6 +51,7 @@ func (o *GlobalOptions) Bind(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.Context, "context", "c", o.Context, "Read client config from 'client_<context>.yaml' instead of 'client.yaml'.")
 	fs.StringVarP(&o.ConfigDir, "config-dir", "", o.ConfigDir, "Specify the directory for client configuration files.")
 	fs.IntVar(&o.RequestTimeout, "request-timeout", o.RequestTimeout, "Request Timeout in seconds (0 - use default OS timeout)")
+	fs.BoolVar(&o.NoWarnDeprecated, "no-warn-deprecated", o.NoWarnDeprecated, "Disable warnings for deprecated API usage")
 }
 
 func (o *GlobalOptions) Complete(cmd *cobra.Command, args []string) error {
@@ -98,7 +102,23 @@ func (o *GlobalOptions) ValidateCmd(args []string) error {
 // from the global options (config file path, organization override, etc.).
 func (o *GlobalOptions) BuildClient() (*apiclient.ClientWithResponses, error) {
 	organization := o.GetEffectiveOrganization()
-	return client.NewFromConfigFile(o.ConfigFilePath, client.WithOrganization(organization), client.WithUserAgentHeader("flightctl-cli"))
+	cfg, err := client.ParseConfigFile(o.ConfigFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient, err := client.NewHTTPClientFromConfig(cfg, o.versioningTransportOptions()...)
+	if err != nil {
+		return nil, fmt.Errorf("creating HTTP client: %w", err)
+	}
+
+	return client.NewFromConfig(
+		cfg,
+		o.ConfigFilePath,
+		apiclient.WithHTTPClient(httpClient),
+		client.WithOrganization(organization),
+		client.WithUserAgentHeader("flightctl-cli"),
+	)
 }
 
 // BuildImageBuilderClient constructs an ImageBuilder API client using configuration
@@ -115,7 +135,7 @@ func (o *GlobalOptions) BuildImageBuilderClient() (*imagebuilderclient.ClientWit
 		return nil, fmt.Errorf("imagebuilder service is not configured. Please configure 'imageBuilderService.server' in your client config")
 	}
 
-	httpClient, err := client.NewHTTPClientFromConfig(config)
+	httpClient, err := client.NewHTTPClientFromConfig(config, o.versioningTransportOptions()...)
 	if err != nil {
 		return nil, fmt.Errorf("creating HTTP client: %w", err)
 	}
@@ -146,6 +166,17 @@ func (o *GlobalOptions) BuildImageBuilderClient() (*imagebuilderclient.ClientWit
 		ref,
 		orgEditor,
 	)
+}
+
+func (o *GlobalOptions) versioningTransportOptions() []versioning.TransportOption {
+	if o.NoWarnDeprecated {
+		return nil
+	}
+	return []versioning.TransportOption{
+		versioning.WithDeprecationPrintf(func(format string, args ...any) {
+			fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", args...)
+		}),
+	}
 }
 
 // GetEffectiveOrganization returns the organization ID to use for API requests.
