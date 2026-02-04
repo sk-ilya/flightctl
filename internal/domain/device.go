@@ -9,7 +9,29 @@ import (
 // ========== Resource Types ==========
 
 type Device = v1beta1.Device
-type DeviceList = v1beta1.DeviceList
+
+// DeviceList is a list of devices with optional summary information.
+type DeviceList struct {
+	ResourceList[Device]
+	Summary *DevicesSummary
+}
+
+// NewDeviceList creates a new DeviceList.
+func NewDeviceList(items []Device, pagination Pagination, summary *DevicesSummary) DeviceList {
+	return DeviceList{
+		ResourceList: NewResourceList(items, pagination),
+		Summary:      summary,
+	}
+}
+
+// EmptyDeviceList creates an empty DeviceList with optional summary.
+func EmptyDeviceList(summary *DevicesSummary) DeviceList {
+	return DeviceList{
+		ResourceList: EmptyResourceList[Device](),
+		Summary:      summary,
+	}
+}
+
 type DeviceSpec = v1beta1.DeviceSpec
 type DeviceStatus = v1beta1.DeviceStatus
 

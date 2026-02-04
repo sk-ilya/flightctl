@@ -52,9 +52,9 @@ func NewAuthProvider(db *gorm.DB, log logrus.FieldLogger) AuthProvider {
 	genericStore := NewGenericStore[*model.AuthProvider, model.AuthProvider, domain.AuthProvider, domain.AuthProviderList](
 		db,
 		log,
-		model.NewAuthProviderFromApiResource,
-		(*model.AuthProvider).ToApiResource,
-		model.AuthProvidersToApiResource,
+		model.NewAuthProviderFromDomain,
+		(*model.AuthProvider).ToDomain,
+		model.AuthProvidersToDomain,
 	)
 
 	return &AuthProviderStore{
@@ -321,7 +321,7 @@ func (s *AuthProviderStore) GetAuthProviderByIssuerAndClientId(ctx context.Conte
 	if err := query.First(&authProvider).Error; err != nil {
 		return nil, ErrorFromGormError(err)
 	}
-	apiResource, err := authProvider.ToApiResource()
+	apiResource, err := authProvider.ToDomain()
 	return apiResource, err
 }
 
@@ -331,6 +331,6 @@ func (s *AuthProviderStore) GetAuthProviderByAuthorizationUrl(ctx context.Contex
 	if err := query.First(&authProvider).Error; err != nil {
 		return nil, ErrorFromGormError(err)
 	}
-	apiResource, err := authProvider.ToApiResource()
+	apiResource, err := authProvider.ToDomain()
 	return apiResource, err
 }

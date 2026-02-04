@@ -27,7 +27,7 @@ func (e EnrollmentRequest) String() string {
 	return string(val)
 }
 
-func NewEnrollmentRequestFromApiResource(resource *domain.EnrollmentRequest) (*EnrollmentRequest, error) {
+func NewEnrollmentRequestFromDomain(resource *domain.EnrollmentRequest) (*EnrollmentRequest, error) {
 	if resource == nil || resource.Metadata.Name == nil {
 		return &EnrollmentRequest{}, nil
 	}
@@ -60,7 +60,7 @@ func EnrollmentRequestAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.EnrollmentRequestAPIVersion)
 }
 
-func (e *EnrollmentRequest) ToApiResource(opts ...APIResourceOption) (*domain.EnrollmentRequest, error) {
+func (e *EnrollmentRequest) ToDomain(opts ...APIResourceOption) (*domain.EnrollmentRequest, error) {
 	if e == nil {
 		return &domain.EnrollmentRequest{}, nil
 	}
@@ -90,23 +90,18 @@ func (e *EnrollmentRequest) ToApiResource(opts ...APIResourceOption) (*domain.En
 	}, nil
 }
 
-func EnrollmentRequestsToApiResource(ers []EnrollmentRequest, cont *string, numRemaining *int64) (domain.EnrollmentRequestList, error) {
+func EnrollmentRequestsToDomain(ers []EnrollmentRequest, cont *string, numRemaining *int64) (domain.ResourceList[domain.EnrollmentRequest], error) {
 	enrollmentRequestList := make([]domain.EnrollmentRequest, len(ers))
 	for i, enrollmentRequest := range ers {
-		apiResource, _ := enrollmentRequest.ToApiResource()
+		apiResource, _ := enrollmentRequest.ToDomain()
 		enrollmentRequestList[i] = *apiResource
 	}
-	ret := domain.EnrollmentRequestList{
-		ApiVersion: EnrollmentRequestAPIVersion(),
-		Kind:       domain.EnrollmentRequestListKind,
-		Items:      enrollmentRequestList,
-		Metadata:   domain.ListMeta{},
-	}
+	metadata := domain.Pagination{}
 	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
 	}
-	return ret, nil
+	return domain.NewResourceList(enrollmentRequestList, metadata), nil
 }
 
 func (e *EnrollmentRequest) GetKind() string {

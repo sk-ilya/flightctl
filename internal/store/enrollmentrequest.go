@@ -20,7 +20,7 @@ type EnrollmentRequest interface {
 	Update(ctx context.Context, orgId uuid.UUID, req *domain.EnrollmentRequest, callbackEvent EventCallback) (*domain.EnrollmentRequest, error)
 	CreateOrUpdate(ctx context.Context, orgId uuid.UUID, enrollmentrequest *domain.EnrollmentRequest, callbackEvent EventCallback) (*domain.EnrollmentRequest, bool, error)
 	Get(ctx context.Context, orgId uuid.UUID, name string) (*domain.EnrollmentRequest, error)
-	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.EnrollmentRequestList, error)
+	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.EnrollmentRequest], error)
 	Delete(ctx context.Context, orgId uuid.UUID, name string, callbackEvent EventCallback) error
 	UpdateStatus(ctx context.Context, orgId uuid.UUID, enrollmentrequest *domain.EnrollmentRequest, callbackEvent EventCallback) (*domain.EnrollmentRequest, error)
 	PrepareEnrollmentRequestsAfterRestore(ctx context.Context) (int64, error)
@@ -29,7 +29,7 @@ type EnrollmentRequest interface {
 type EnrollmentRequestStore struct {
 	dbHandler           *gorm.DB
 	log                 logrus.FieldLogger
-	genericStore        *GenericStore[*model.EnrollmentRequest, model.EnrollmentRequest, domain.EnrollmentRequest, domain.EnrollmentRequestList]
+	genericStore        *GenericStore[*model.EnrollmentRequest, model.EnrollmentRequest, domain.EnrollmentRequest, domain.ResourceList[domain.EnrollmentRequest]]
 	eventCallbackCaller EventCallbackCaller
 }
 
@@ -37,12 +37,12 @@ type EnrollmentRequestStore struct {
 var _ EnrollmentRequest = (*EnrollmentRequestStore)(nil)
 
 func NewEnrollmentRequest(db *gorm.DB, log logrus.FieldLogger) EnrollmentRequest {
-	genericStore := NewGenericStore[*model.EnrollmentRequest, model.EnrollmentRequest, domain.EnrollmentRequest, domain.EnrollmentRequestList](
+	genericStore := NewGenericStore[*model.EnrollmentRequest, model.EnrollmentRequest, domain.EnrollmentRequest, domain.ResourceList[domain.EnrollmentRequest]](
 		db,
 		log,
-		model.NewEnrollmentRequestFromApiResource,
-		(*model.EnrollmentRequest).ToApiResource,
-		model.EnrollmentRequestsToApiResource,
+		model.NewEnrollmentRequestFromDomain,
+		(*model.EnrollmentRequest).ToDomain,
+		model.EnrollmentRequestsToDomain,
 	)
 	return &EnrollmentRequestStore{dbHandler: db, log: log, genericStore: genericStore, eventCallbackCaller: CallEventCallback(domain.EnrollmentRequestKind, log)}
 }
@@ -122,7 +122,7 @@ func (s *EnrollmentRequestStore) Get(ctx context.Context, orgId uuid.UUID, name 
 	return s.genericStore.Get(ctx, orgId, name)
 }
 
-func (s *EnrollmentRequestStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.EnrollmentRequestList, error) {
+func (s *EnrollmentRequestStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.EnrollmentRequest], error) {
 	return s.genericStore.List(ctx, orgId, listParams)
 }
 

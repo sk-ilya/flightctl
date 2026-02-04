@@ -5,6 +5,9 @@ import v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
 // ========== Resource Types ==========
 
 type AuthProvider = v1beta1.AuthProvider
+
+// AuthProviderList remains a direct alias to v1beta1.AuthProviderList for compatibility
+// with the authn.AuthProviderService interface.
 type AuthProviderList = v1beta1.AuthProviderList
 type AuthProviderSpec = v1beta1.AuthProviderSpec
 type AuthConfig = v1beta1.AuthConfig

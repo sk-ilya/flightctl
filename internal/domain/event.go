@@ -13,7 +13,6 @@ import (
 // ========== Resource Types ==========
 
 type Event = v1beta1.Event
-type EventList = v1beta1.EventList
 type EventSource = v1beta1.EventSource
 type EventDetails = v1beta1.EventDetails
 

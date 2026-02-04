@@ -135,11 +135,9 @@ func (s *DummyEvent) Create(ctx context.Context, orgId uuid.UUID, event *domain.
 	return nil
 }
 
-func (s *DummyEvent) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.EventList, error) {
-	list := &domain.EventList{
-		ApiVersion: "",
-		Kind:       "",
-		Metadata:   domain.ListMeta{},
+func (s *DummyEvent) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.ResourceList[domain.Event], error) {
+	list := &domain.ResourceList[domain.Event]{
+		Pagination: domain.Pagination{},
 		Items:      *s.events,
 	}
 	return list, nil
@@ -392,11 +390,9 @@ func (s *DummyRepository) Delete(ctx context.Context, orgId uuid.UUID, name stri
 	return flterrors.ErrResourceNotFound
 }
 
-func (s *DummyRepository) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.RepositoryList, error) {
-	return &domain.RepositoryList{
-		ApiVersion: "",
-		Kind:       "",
-		Metadata:   domain.ListMeta{},
+func (s *DummyRepository) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.ResourceList[domain.Repository], error) {
+	return &domain.ResourceList[domain.Repository]{
+		Pagination: domain.Pagination{},
 		Items:      *s.repositories,
 	}, nil
 }
@@ -461,11 +457,9 @@ func (s *DummyResourceSync) CreateOrUpdate(ctx context.Context, orgId uuid.UUID,
 	return resourceSync, created, nil
 }
 
-func (s *DummyResourceSync) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.ResourceSyncList, error) {
-	return &domain.ResourceSyncList{
-		ApiVersion: "",
-		Kind:       "",
-		Metadata:   domain.ListMeta{},
+func (s *DummyResourceSync) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.ResourceList[domain.ResourceSync], error) {
+	return &domain.ResourceList[domain.ResourceSync]{
+		Pagination: domain.Pagination{},
 		Items:      *s.resourceSyncVals,
 	}, nil
 }

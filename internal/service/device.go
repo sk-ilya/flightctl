@@ -16,7 +16,6 @@ import (
 	"github.com/flightctl/flightctl/internal/rendered"
 	"github.com/flightctl/flightctl/internal/service/common"
 	"github.com/flightctl/flightctl/internal/store"
-	"github.com/flightctl/flightctl/internal/store/model"
 	"github.com/flightctl/flightctl/internal/store/selector"
 	"github.com/flightctl/flightctl/internal/util/validation"
 	"github.com/google/uuid"
@@ -150,9 +149,7 @@ func (h *ServiceHandler) ListDevices(ctx context.Context, orgId uuid.UUID, param
 
 		switch err {
 		case nil:
-			// Create an empty DeviceList and set the summary
-			emptyList, _ := model.DevicesToApiResource([]model.Device{}, nil, nil)
-			emptyList.Summary = result
+			emptyList := domain.EmptyDeviceList(result)
 			return &emptyList, domain.StatusOK()
 		default:
 			return nil, domain.StatusInternalServerError(err.Error())
@@ -627,7 +624,7 @@ func (h *ServiceHandler) OverwriteDeviceRepositoryRefs(ctx context.Context, orgI
 	return StoreErrorToApiStatus(err, false, domain.DeviceKind, &name)
 }
 
-func (h *ServiceHandler) GetDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, domain.Status) {
+func (h *ServiceHandler) GetDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status) {
 	result, err := h.store.Device().GetRepositoryRefs(ctx, orgId, name)
 	return result, StoreErrorToApiStatus(err, false, domain.DeviceKind, &name)
 }

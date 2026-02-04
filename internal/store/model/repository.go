@@ -33,7 +33,7 @@ func (r Repository) String() string {
 	return string(val)
 }
 
-func NewRepositoryFromApiResource(resource *domain.Repository) (*Repository, error) {
+func NewRepositoryFromDomain(resource *domain.Repository) (*Repository, error) {
 	if resource == nil || resource.Metadata.Name == nil {
 		return &Repository{}, nil
 	}
@@ -66,7 +66,7 @@ func RepositoryAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.RepositoryAPIVersion)
 }
 
-func (r *Repository) ToApiResource(opts ...APIResourceOption) (*domain.Repository, error) {
+func (r *Repository) ToDomain(opts ...APIResourceOption) (*domain.Repository, error) {
 	if r == nil {
 		return &domain.Repository{}, nil
 	}
@@ -96,30 +96,21 @@ func (r *Repository) ToApiResource(opts ...APIResourceOption) (*domain.Repositor
 	}, nil
 }
 
-func RepositoriesToApiResource(repos []Repository, cont *string, numRemaining *int64) (domain.RepositoryList, error) {
+func RepositoriesToDomain(repos []Repository, cont *string, numRemaining *int64) (domain.ResourceList[domain.Repository], error) {
 	repositoryList := make([]domain.Repository, len(repos))
 	for i, repository := range repos {
-		repo, err := repository.ToApiResource()
+		repo, err := repository.ToDomain()
 		if err != nil {
-			return domain.RepositoryList{
-				ApiVersion: RepositoryAPIVersion(),
-				Kind:       domain.RepositoryListKind,
-				Items:      []domain.Repository{},
-			}, err
+			return domain.EmptyResourceList[domain.Repository](), err
 		}
 		repositoryList[i] = *repo
 	}
-	ret := domain.RepositoryList{
-		ApiVersion: RepositoryAPIVersion(),
-		Kind:       domain.RepositoryListKind,
-		Items:      repositoryList,
-		Metadata:   domain.ListMeta{},
-	}
+	metadata := domain.Pagination{}
 	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
 	}
-	return ret, nil
+	return domain.NewResourceList(repositoryList, metadata), nil
 }
 
 func (r *Repository) GetKind() string {

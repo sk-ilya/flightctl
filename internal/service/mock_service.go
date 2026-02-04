@@ -514,10 +514,10 @@ func (mr *MockServiceMockRecorder) GetDeviceLastSeen(ctx, orgId, name any) *gomo
 }
 
 // GetDeviceRepositoryRefs mocks base method.
-func (m *MockService) GetDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, domain.Status) {
+func (m *MockService) GetDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDeviceRepositoryRefs", ctx, orgId, name)
-	ret0, _ := ret[0].(*domain.RepositoryList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Repository])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -619,10 +619,10 @@ func (mr *MockServiceMockRecorder) GetFleet(ctx, orgId, name, params any) *gomoc
 }
 
 // GetFleetRepositoryRefs mocks base method.
-func (m *MockService) GetFleetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, domain.Status) {
+func (m *MockService) GetFleetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFleetRepositoryRefs", ctx, orgId, name)
-	ret0, _ := ret[0].(*domain.RepositoryList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Repository])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -709,10 +709,10 @@ func (mr *MockServiceMockRecorder) GetRepositoryDeviceReferences(ctx, orgId, nam
 }
 
 // GetRepositoryFleetReferences mocks base method.
-func (m *MockService) GetRepositoryFleetReferences(ctx context.Context, orgId uuid.UUID, name string) (*domain.FleetList, domain.Status) {
+func (m *MockService) GetRepositoryFleetReferences(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRepositoryFleetReferences", ctx, orgId, name)
-	ret0, _ := ret[0].(*domain.FleetList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Fleet])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -784,10 +784,10 @@ func (mr *MockServiceMockRecorder) ListAuthProviders(ctx, orgId, params any) *go
 }
 
 // ListCertificateSigningRequests mocks base method.
-func (m *MockService) ListCertificateSigningRequests(ctx context.Context, orgId uuid.UUID, params domain.ListCertificateSigningRequestsParams) (*domain.CertificateSigningRequestList, domain.Status) {
+func (m *MockService) ListCertificateSigningRequests(ctx context.Context, orgId uuid.UUID, params domain.ListCertificateSigningRequestsParams) (*domain.ResourceList[domain.CertificateSigningRequest], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListCertificateSigningRequests", ctx, orgId, params)
-	ret0, _ := ret[0].(*domain.CertificateSigningRequestList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.CertificateSigningRequest])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -844,10 +844,10 @@ func (mr *MockServiceMockRecorder) ListDisconnectedDevices(ctx, orgId, params, c
 }
 
 // ListDisruptionBudgetFleets mocks base method.
-func (m *MockService) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, domain.Status) {
+func (m *MockService) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListDisruptionBudgetFleets", ctx, orgId)
-	ret0, _ := ret[0].(*domain.FleetList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Fleet])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -859,10 +859,10 @@ func (mr *MockServiceMockRecorder) ListDisruptionBudgetFleets(ctx, orgId any) *g
 }
 
 // ListEnrollmentRequests mocks base method.
-func (m *MockService) ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ListEnrollmentRequestsParams) (*domain.EnrollmentRequestList, domain.Status) {
+func (m *MockService) ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ListEnrollmentRequestsParams) (*domain.ResourceList[domain.EnrollmentRequest], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEnrollmentRequests", ctx, orgId, params)
-	ret0, _ := ret[0].(*domain.EnrollmentRequestList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.EnrollmentRequest])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -874,10 +874,10 @@ func (mr *MockServiceMockRecorder) ListEnrollmentRequests(ctx, orgId, params any
 }
 
 // ListEvents mocks base method.
-func (m *MockService) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.EventList, domain.Status) {
+func (m *MockService) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.ResourceList[domain.Event], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEvents", ctx, orgId, params)
-	ret0, _ := ret[0].(*domain.EventList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Event])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -889,10 +889,10 @@ func (mr *MockServiceMockRecorder) ListEvents(ctx, orgId, params any) *gomock.Ca
 }
 
 // ListFleetRolloutDeviceSelection mocks base method.
-func (m *MockService) ListFleetRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, domain.Status) {
+func (m *MockService) ListFleetRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListFleetRolloutDeviceSelection", ctx, orgId)
-	ret0, _ := ret[0].(*domain.FleetList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Fleet])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -904,10 +904,10 @@ func (mr *MockServiceMockRecorder) ListFleetRolloutDeviceSelection(ctx, orgId an
 }
 
 // ListFleets mocks base method.
-func (m *MockService) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.FleetList, domain.Status) {
+func (m *MockService) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListFleets", ctx, orgId, params)
-	ret0, _ := ret[0].(*domain.FleetList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Fleet])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -934,10 +934,10 @@ func (mr *MockServiceMockRecorder) ListLabels(ctx, orgId, params any) *gomock.Ca
 }
 
 // ListOrganizations mocks base method.
-func (m *MockService) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.OrganizationList, domain.Status) {
+func (m *MockService) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.ResourceList[domain.Organization], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListOrganizations", ctx, params)
-	ret0, _ := ret[0].(*domain.OrganizationList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Organization])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -949,10 +949,10 @@ func (mr *MockServiceMockRecorder) ListOrganizations(ctx, params any) *gomock.Ca
 }
 
 // ListRepositories mocks base method.
-func (m *MockService) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.RepositoryList, domain.Status) {
+func (m *MockService) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.ResourceList[domain.Repository], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListRepositories", ctx, orgId, params)
-	ret0, _ := ret[0].(*domain.RepositoryList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.Repository])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -964,10 +964,10 @@ func (mr *MockServiceMockRecorder) ListRepositories(ctx, orgId, params any) *gom
 }
 
 // ListResourceSyncs mocks base method.
-func (m *MockService) ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ListResourceSyncsParams) (*domain.ResourceSyncList, domain.Status) {
+func (m *MockService) ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ListResourceSyncsParams) (*domain.ResourceList[domain.ResourceSync], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListResourceSyncs", ctx, orgId, params)
-	ret0, _ := ret[0].(*domain.ResourceSyncList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.ResourceSync])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }
@@ -979,10 +979,10 @@ func (mr *MockServiceMockRecorder) ListResourceSyncs(ctx, orgId, params any) *go
 }
 
 // ListTemplateVersions mocks base method.
-func (m *MockService) ListTemplateVersions(ctx context.Context, orgId uuid.UUID, fleet string, params domain.ListTemplateVersionsParams) (*domain.TemplateVersionList, domain.Status) {
+func (m *MockService) ListTemplateVersions(ctx context.Context, orgId uuid.UUID, fleet string, params domain.ListTemplateVersionsParams) (*domain.ResourceList[domain.TemplateVersion], domain.Status) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTemplateVersions", ctx, orgId, fleet, params)
-	ret0, _ := ret[0].(*domain.TemplateVersionList)
+	ret0, _ := ret[0].(*domain.ResourceList[domain.TemplateVersion])
 	ret1, _ := ret[1].(domain.Status)
 	return ret0, ret1
 }

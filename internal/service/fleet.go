@@ -29,7 +29,7 @@ func (h *ServiceHandler) CreateFleet(ctx context.Context, orgId uuid.UUID, fleet
 	return result, StoreErrorToApiStatus(err, true, domain.FleetKind, fleet.Metadata.Name)
 }
 
-func (h *ServiceHandler) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.FleetList, domain.Status) {
+func (h *ServiceHandler) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
 	if status != domain.StatusOK() {
 		return nil, status
@@ -138,12 +138,12 @@ func (h *ServiceHandler) PatchFleet(ctx context.Context, orgId uuid.UUID, name s
 	return result, StoreErrorToApiStatus(err, false, domain.FleetKind, &name)
 }
 
-func (h *ServiceHandler) ListFleetRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, domain.Status) {
+func (h *ServiceHandler) ListFleetRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	result, err := h.store.Fleet().ListRolloutDeviceSelection(ctx, orgId)
 	return result, StoreErrorToApiStatus(err, false, domain.FleetKind, nil)
 }
 
-func (h *ServiceHandler) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, domain.Status) {
+func (h *ServiceHandler) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	result, err := h.store.Fleet().ListDisruptionBudgetFleets(ctx, orgId)
 	return result, StoreErrorToApiStatus(err, false, domain.FleetKind, nil)
 }
@@ -163,7 +163,7 @@ func (h *ServiceHandler) OverwriteFleetRepositoryRefs(ctx context.Context, orgId
 	return StoreErrorToApiStatus(err, false, domain.FleetKind, &name)
 }
 
-func (h *ServiceHandler) GetFleetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, domain.Status) {
+func (h *ServiceHandler) GetFleetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status) {
 	result, err := h.store.Fleet().GetRepositoryRefs(ctx, orgId, name)
 	return result, StoreErrorToApiStatus(err, false, domain.FleetKind, &name)
 }

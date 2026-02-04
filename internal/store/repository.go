@@ -18,11 +18,11 @@ type Repository interface {
 	Update(ctx context.Context, orgId uuid.UUID, repository *domain.Repository, eventCallback EventCallback) (*domain.Repository, error)
 	CreateOrUpdate(ctx context.Context, orgId uuid.UUID, repository *domain.Repository, eventCallback EventCallback) (*domain.Repository, bool, error)
 	Get(ctx context.Context, orgId uuid.UUID, name string) (*domain.Repository, error)
-	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.RepositoryList, error)
+	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.Repository], error)
 	Delete(ctx context.Context, orgId uuid.UUID, name string, eventCallback EventCallback) error
 	UpdateStatus(ctx context.Context, orgId uuid.UUID, resource *domain.Repository, eventCallback EventCallback) (*domain.Repository, error)
 
-	GetFleetRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.FleetList, error)
+	GetFleetRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Fleet], error)
 	GetDeviceRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.DeviceList, error)
 
 	// Used by domain metrics
@@ -33,7 +33,7 @@ type Repository interface {
 type RepositoryStore struct {
 	dbHandler           *gorm.DB
 	log                 logrus.FieldLogger
-	genericStore        *GenericStore[*model.Repository, model.Repository, domain.Repository, domain.RepositoryList]
+	genericStore        *GenericStore[*model.Repository, model.Repository, domain.Repository, domain.ResourceList[domain.Repository]]
 	eventCallbackCaller EventCallbackCaller
 }
 
@@ -41,12 +41,12 @@ type RepositoryStore struct {
 var _ Repository = (*RepositoryStore)(nil)
 
 func NewRepository(db *gorm.DB, log logrus.FieldLogger) Repository {
-	genericStore := NewGenericStore[*model.Repository, model.Repository, domain.Repository, domain.RepositoryList](
+	genericStore := NewGenericStore[*model.Repository, model.Repository, domain.Repository, domain.ResourceList[domain.Repository]](
 		db,
 		log,
-		model.NewRepositoryFromApiResource,
-		(*model.Repository).ToApiResource,
-		model.RepositoriesToApiResource,
+		model.NewRepositoryFromDomain,
+		(*model.Repository).ToDomain,
+		model.RepositoriesToDomain,
 	)
 	return &RepositoryStore{dbHandler: db, log: log, genericStore: genericStore, eventCallbackCaller: CallEventCallback(domain.RepositoryKind, log)}
 }
@@ -114,7 +114,7 @@ func (s *RepositoryStore) Get(ctx context.Context, orgId uuid.UUID, name string)
 	return s.genericStore.Get(ctx, orgId, name)
 }
 
-func (s *RepositoryStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.RepositoryList, error) {
+func (s *RepositoryStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.Repository], error) {
 	return s.genericStore.List(ctx, orgId, listParams)
 }
 
@@ -169,14 +169,14 @@ func (s *RepositoryStore) UpdateStatus(ctx context.Context, orgId uuid.UUID, res
 	return newRepo, err
 }
 
-func (s *RepositoryStore) GetFleetRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.FleetList, error) {
+func (s *RepositoryStore) GetFleetRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Fleet], error) {
 	repository := model.Repository{Resource: model.Resource{OrgID: orgId, Name: name}}
 	var fleets []model.Fleet
 	err := s.getDB(ctx).Model(&repository).Association("Fleets").Find(&fleets)
 	if err != nil {
 		return nil, ErrorFromGormError(err)
 	}
-	fleetList, _ := model.FleetsToApiResource(fleets, nil, nil)
+	fleetList, _ := model.FleetsToDomain(fleets, nil, nil)
 	return &fleetList, nil
 }
 
@@ -187,7 +187,7 @@ func (s *RepositoryStore) GetDeviceRefs(ctx context.Context, orgId uuid.UUID, na
 	if err != nil {
 		return nil, ErrorFromGormError(err)
 	}
-	deviceList, _ := model.DevicesToApiResource(devices, nil, nil)
+	deviceList, _ := model.DevicesToDomain(devices, nil, nil)
 	return &deviceList, nil
 }
 

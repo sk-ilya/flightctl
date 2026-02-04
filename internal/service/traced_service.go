@@ -45,7 +45,7 @@ func endSpan(span trace.Span, st domain.Status) {
 }
 
 // --- CertificateSigningRequest ---
-func (t *TracedService) ListCertificateSigningRequests(ctx context.Context, orgId uuid.UUID, p domain.ListCertificateSigningRequestsParams) (*domain.CertificateSigningRequestList, domain.Status) {
+func (t *TracedService) ListCertificateSigningRequests(ctx context.Context, orgId uuid.UUID, p domain.ListCertificateSigningRequestsParams) (*domain.ResourceList[domain.CertificateSigningRequest], domain.Status) {
 	ctx, span := startSpan(ctx, "ListCertificateSigningRequests")
 	resp, st := t.inner.ListCertificateSigningRequests(ctx, orgId, p)
 	endSpan(span, st)
@@ -225,7 +225,7 @@ func (t *TracedService) OverwriteDeviceRepositoryRefs(ctx context.Context, orgId
 	endSpan(span, st)
 	return st
 }
-func (t *TracedService) GetDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, domain.Status) {
+func (t *TracedService) GetDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status) {
 	ctx, span := startSpan(ctx, "GetDeviceRepositoryRefs")
 	resp, st := t.inner.GetDeviceRepositoryRefs(ctx, orgId, name)
 	endSpan(span, st)
@@ -289,7 +289,7 @@ func (t *TracedService) CreateEnrollmentRequest(ctx context.Context, orgId uuid.
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ListEnrollmentRequestsParams) (*domain.EnrollmentRequestList, domain.Status) {
+func (t *TracedService) ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ListEnrollmentRequestsParams) (*domain.ResourceList[domain.EnrollmentRequest], domain.Status) {
 	ctx, span := startSpan(ctx, "ListEnrollmentRequests")
 	resp, st := t.inner.ListEnrollmentRequests(ctx, orgId, params)
 	endSpan(span, st)
@@ -345,7 +345,7 @@ func (t *TracedService) CreateFleet(ctx context.Context, orgId uuid.UUID, fleet 
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.FleetList, domain.Status) {
+func (t *TracedService) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	ctx, span := startSpan(ctx, "ListFleets")
 	resp, st := t.inner.ListFleets(ctx, orgId, params)
 	endSpan(span, st)
@@ -387,13 +387,13 @@ func (t *TracedService) PatchFleet(ctx context.Context, orgId uuid.UUID, name st
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) ListFleetRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, domain.Status) {
+func (t *TracedService) ListFleetRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	ctx, span := startSpan(ctx, "ListFleetRolloutDeviceSelection")
 	resp, st := t.inner.ListFleetRolloutDeviceSelection(ctx, orgId)
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, domain.Status) {
+func (t *TracedService) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	ctx, span := startSpan(ctx, "ListDisruptionBudgetFleets")
 	resp, st := t.inner.ListDisruptionBudgetFleets(ctx, orgId)
 	endSpan(span, st)
@@ -417,7 +417,7 @@ func (t *TracedService) OverwriteFleetRepositoryRefs(ctx context.Context, orgId 
 	endSpan(span, st)
 	return st
 }
-func (t *TracedService) GetFleetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, domain.Status) {
+func (t *TracedService) GetFleetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status) {
 	ctx, span := startSpan(ctx, "GetFleetRepositoryRefs")
 	resp, st := t.inner.GetFleetRepositoryRefs(ctx, orgId, name)
 	endSpan(span, st)
@@ -441,7 +441,7 @@ func (t *TracedService) CreateRepository(ctx context.Context, orgId uuid.UUID, r
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.RepositoryList, domain.Status) {
+func (t *TracedService) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.ResourceList[domain.Repository], domain.Status) {
 	ctx, span := startSpan(ctx, "ListRepositories")
 	resp, st := t.inner.ListRepositories(ctx, orgId, params)
 	endSpan(span, st)
@@ -477,7 +477,7 @@ func (t *TracedService) ReplaceRepositoryStatusByError(ctx context.Context, orgI
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) GetRepositoryFleetReferences(ctx context.Context, orgId uuid.UUID, name string) (*domain.FleetList, domain.Status) {
+func (t *TracedService) GetRepositoryFleetReferences(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	ctx, span := startSpan(ctx, "GetRepositoryFleetReferences")
 	resp, st := t.inner.GetRepositoryFleetReferences(ctx, orgId, name)
 	endSpan(span, st)
@@ -497,7 +497,7 @@ func (t *TracedService) CreateResourceSync(ctx context.Context, orgId uuid.UUID,
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ListResourceSyncsParams) (*domain.ResourceSyncList, domain.Status) {
+func (t *TracedService) ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ListResourceSyncsParams) (*domain.ResourceList[domain.ResourceSync], domain.Status) {
 	ctx, span := startSpan(ctx, "ListResourceSyncs")
 	resp, st := t.inner.ListResourceSyncs(ctx, orgId, params)
 	endSpan(span, st)
@@ -541,7 +541,7 @@ func (t *TracedService) CreateTemplateVersion(ctx context.Context, orgId uuid.UU
 	endSpan(span, st)
 	return resp, st
 }
-func (t *TracedService) ListTemplateVersions(ctx context.Context, orgId uuid.UUID, fleet string, params domain.ListTemplateVersionsParams) (*domain.TemplateVersionList, domain.Status) {
+func (t *TracedService) ListTemplateVersions(ctx context.Context, orgId uuid.UUID, fleet string, params domain.ListTemplateVersionsParams) (*domain.ResourceList[domain.TemplateVersion], domain.Status) {
 	ctx, span := startSpan(ctx, "ListTemplateVersions")
 	resp, st := t.inner.ListTemplateVersions(ctx, orgId, fleet, params)
 	endSpan(span, st)
@@ -572,7 +572,7 @@ func (t *TracedService) CreateEvent(ctx context.Context, orgId uuid.UUID, event 
 	t.inner.CreateEvent(ctx, orgId, event)
 	span.End()
 }
-func (t *TracedService) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.EventList, domain.Status) {
+func (t *TracedService) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.ResourceList[domain.Event], domain.Status) {
 	ctx, span := startSpan(ctx, "ListEvents")
 	resp, st := t.inner.ListEvents(ctx, orgId, params)
 	endSpan(span, st)
@@ -606,7 +606,7 @@ func (t *TracedService) GetDatabaseTime(ctx context.Context) (time.Time, domain.
 }
 
 // --- Organization ---
-func (t *TracedService) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.OrganizationList, domain.Status) {
+func (t *TracedService) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.ResourceList[domain.Organization], domain.Status) {
 	ctx, span := startSpan(ctx, "ListOrganizations")
 	resp, st := t.inner.ListOrganizations(ctx, params)
 	endSpan(span, st)

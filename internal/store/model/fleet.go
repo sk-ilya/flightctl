@@ -29,7 +29,7 @@ func (d Fleet) String() string {
 	return string(val)
 }
 
-func NewFleetFromApiResource(resource *domain.Fleet) (*Fleet, error) {
+func NewFleetFromDomain(resource *domain.Fleet) (*Fleet, error) {
 	if resource == nil || resource.Metadata.Name == nil {
 		return &Fleet{}, nil
 	}
@@ -64,7 +64,7 @@ func FleetAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.FleetAPIVersion)
 }
 
-func (f *Fleet) ToApiResource(opts ...APIResourceOption) (*domain.Fleet, error) {
+func (f *Fleet) ToDomain(opts ...APIResourceOption) (*domain.Fleet, error) {
 	if f == nil {
 		return &domain.Fleet{}, nil
 	}
@@ -102,27 +102,22 @@ func (f *Fleet) ToApiResource(opts ...APIResourceOption) (*domain.Fleet, error) 
 	}, nil
 }
 
-func FleetsToApiResource(fleets []Fleet, cont *string, numRemaining *int64) (domain.FleetList, error) {
+func FleetsToDomain(fleets []Fleet, cont *string, numRemaining *int64) (domain.ResourceList[domain.Fleet], error) {
 	fleetList := make([]domain.Fleet, len(fleets))
 	for i, fleet := range fleets {
 		var opts []APIResourceOption
 		if fleet.Status.Data.DevicesSummary != nil {
 			opts = append(opts, WithDevicesSummary(fleet.Status.Data.DevicesSummary))
 		}
-		apiResource, _ := fleet.ToApiResource(opts...)
+		apiResource, _ := fleet.ToDomain(opts...)
 		fleetList[i] = *apiResource
 	}
-	ret := domain.FleetList{
-		ApiVersion: FleetAPIVersion(),
-		Kind:       domain.FleetListKind,
-		Items:      fleetList,
-		Metadata:   domain.ListMeta{},
-	}
+	metadata := domain.Pagination{}
 	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
 	}
-	return ret, nil
+	return domain.NewResourceList(fleetList, metadata), nil
 }
 
 func FleetPtrToFleet(f *Fleet) *Fleet {

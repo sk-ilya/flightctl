@@ -5,8 +5,11 @@ import v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
 // ========== Metadata ==========
 
 type ObjectMeta = v1beta1.ObjectMeta
-type ListMeta = v1beta1.ListMeta
 type ObjectReference = v1beta1.ObjectReference
+
+// ListMeta is re-exported for API-aliased list types (e.g., AuthProviderList).
+// For domain ResourceList types, use the Pagination type in list.go instead.
+type ListMeta = v1beta1.ListMeta
 
 // ========== Conditions ==========
 

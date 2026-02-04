@@ -76,28 +76,28 @@ var _ = Describe("TemplateVersion", func() {
 			templateVersions, err := storeInst.TemplateVersion().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(templateVersions.Items)).To(Equal(2))
-			Expect(*templateVersions.Metadata.RemainingItemCount).To(Equal(int64(3)))
+			Expect(*templateVersions.Pagination.RemainingItemCount).To(Equal(int64(3)))
 			foundNames[0] = *templateVersions.Items[0].Metadata.Name
 			foundNames[1] = *templateVersions.Items[1].Metadata.Name
 
-			cont, err := store.ParseContinueString(templateVersions.Metadata.Continue)
+			cont, err := store.ParseContinueString(templateVersions.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			templateVersions, err = storeInst.TemplateVersion().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(templateVersions.Items)).To(Equal(2))
-			Expect(*templateVersions.Metadata.RemainingItemCount).To(Equal(int64(1)))
+			Expect(*templateVersions.Pagination.RemainingItemCount).To(Equal(int64(1)))
 			foundNames[2] = *templateVersions.Items[0].Metadata.Name
 			foundNames[3] = *templateVersions.Items[1].Metadata.Name
 
-			cont, err = store.ParseContinueString(templateVersions.Metadata.Continue)
+			cont, err = store.ParseContinueString(templateVersions.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			templateVersions, err = storeInst.TemplateVersion().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(templateVersions.Items)).To(Equal(1))
-			Expect(templateVersions.Metadata.RemainingItemCount).To(BeNil())
-			Expect(templateVersions.Metadata.Continue).To(BeNil())
+			Expect(templateVersions.Pagination.RemainingItemCount).To(BeNil())
+			Expect(templateVersions.Pagination.Continue).To(BeNil())
 			foundNames[4] = *templateVersions.Items[0].Metadata.Name
 
 			for i := range allNames {

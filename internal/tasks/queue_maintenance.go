@@ -335,10 +335,10 @@ func (t *QueueMaintenanceTask) republishEventsSince(ctx context.Context, since t
 			}
 
 			// Check if there are more events to process
-			if eventList.Metadata.Continue == nil || *eventList.Metadata.Continue == "" {
+			if eventList.Pagination.Continue == nil || *eventList.Pagination.Continue == "" {
 				break
 			}
-			continueToken = eventList.Metadata.Continue
+			continueToken = eventList.Pagination.Continue
 		}
 
 		if orgEventCount > 0 {

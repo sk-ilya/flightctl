@@ -24,7 +24,7 @@ func (a AuthProvider) String() string {
 	return string(val)
 }
 
-func NewAuthProviderFromApiResource(resource *domain.AuthProvider) (*AuthProvider, error) {
+func NewAuthProviderFromDomain(resource *domain.AuthProvider) (*AuthProvider, error) {
 	if resource == nil {
 		return nil, fmt.Errorf("resource is nil")
 	}
@@ -58,7 +58,7 @@ func AuthProviderAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.AuthProviderAPIVersion)
 }
 
-func (a *AuthProvider) ToApiResource(opts ...APIResourceOption) (*domain.AuthProvider, error) {
+func (a *AuthProvider) ToDomain(opts ...APIResourceOption) (*domain.AuthProvider, error) {
 	if a == nil {
 		return &domain.AuthProvider{}, nil
 	}
@@ -112,9 +112,9 @@ func (a *AuthProvider) HasSameSpecAs(otherResource any) bool {
 	return reflect.DeepEqual(a.Spec.Data, other.Spec.Data)
 }
 
-func AuthProvidersToApiResource(authProviders []AuthProvider, continueToken *string, resourceVersion *int64) (domain.AuthProviderList, error) {
+func AuthProvidersToDomain(authProviders []AuthProvider, continueToken *string, resourceVersion *int64) (domain.AuthProviderList, error) {
 	items := lo.Map(authProviders, func(authProvider AuthProvider, _ int) domain.AuthProvider {
-		resource, _ := authProvider.ToApiResource()
+		resource, _ := authProvider.ToDomain()
 		return *resource
 	})
 

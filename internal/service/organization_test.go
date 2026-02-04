@@ -62,10 +62,8 @@ func TestListOrganizations_EmptyResult(t *testing.T) {
 
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
-	require.Equal(t, organizationApiVersion, result.ApiVersion)
-	require.Equal(t, domain.OrganizationListKind, result.Kind)
 	require.Empty(t, result.Items)
-	require.Equal(t, domain.ListMeta{}, result.Metadata)
+	require.Equal(t, domain.Pagination{}, result.Pagination)
 }
 
 func TestListOrganizations_SingleOrganization(t *testing.T) {
@@ -81,11 +79,9 @@ func TestListOrganizations_SingleOrganization(t *testing.T) {
 
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
-	require.Equal(t, organizationApiVersion, result.ApiVersion)
-	require.Equal(t, domain.OrganizationListKind, result.Kind)
 	require.Len(t, result.Items, 1)
 	require.Equal(t, expectedOrg, result.Items[0])
-	require.Equal(t, domain.ListMeta{}, result.Metadata)
+	require.Equal(t, domain.Pagination{}, result.Pagination)
 }
 
 func TestListOrganizations_MultipleOrganizations(t *testing.T) {
@@ -108,13 +104,11 @@ func TestListOrganizations_MultipleOrganizations(t *testing.T) {
 
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
-	require.Equal(t, organizationApiVersion, result.ApiVersion)
-	require.Equal(t, domain.OrganizationListKind, result.Kind)
 	require.Len(t, result.Items, 2)
 
 	require.Contains(t, result.Items, expectedOrg1)
 	require.Contains(t, result.Items, expectedOrg2)
-	require.Equal(t, domain.ListMeta{}, result.Metadata)
+	require.Equal(t, domain.Pagination{}, result.Pagination)
 }
 
 func TestListOrganizations_StoreError(t *testing.T) {
@@ -172,7 +166,7 @@ func TestListOrganizations_WithAuthFiltering(t *testing.T) {
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
 	require.Len(t, result.Items, 2)
-	require.Equal(t, domain.ListMeta{}, result.Metadata)
+	require.Equal(t, domain.Pagination{}, result.Pagination)
 
 	expectedOrg2 := createExpectedAPIOrganization(u2, "Org-22", "ext-22")
 	expectedOrg3 := createExpectedAPIOrganization(u3, "Org-33", "ext-33")

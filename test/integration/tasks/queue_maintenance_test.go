@@ -9,6 +9,7 @@ import (
 
 	api "github.com/flightctl/flightctl/api/core/v1beta1"
 	"github.com/flightctl/flightctl/internal/consts"
+	"github.com/flightctl/flightctl/internal/domain"
 	"github.com/flightctl/flightctl/internal/service"
 	"github.com/flightctl/flightctl/internal/tasks"
 	"github.com/flightctl/flightctl/internal/worker_client"
@@ -23,12 +24,12 @@ import (
 )
 
 // Helper function to create organizations
-func createTestOrganizations(orgIDs []uuid.UUID) *api.OrganizationList {
-	var orgs []api.Organization
+func createTestOrganizations(orgIDs []uuid.UUID) *domain.ResourceList[domain.Organization] {
+	var orgs []domain.Organization
 	for i, orgID := range orgIDs {
 		name := orgID.String()
 		displayName := fmt.Sprintf("Test Organization %d", i+1)
-		org := api.Organization{
+		org := domain.Organization{
 			ApiVersion: "v1beta1",
 			Kind:       api.OrganizationKind,
 			Metadata:   api.ObjectMeta{Name: &name},
@@ -38,16 +39,16 @@ func createTestOrganizations(orgIDs []uuid.UUID) *api.OrganizationList {
 		}
 		orgs = append(orgs, org)
 	}
-	return &api.OrganizationList{Items: orgs}
+	return &domain.ResourceList[domain.Organization]{Items: orgs}
 }
 
 // Helper function to create events for an organization with timestamp filtering
-func createEventsForOrg(events []api.Event, fieldSelector *string) *api.EventList {
+func createEventsForOrg(events []domain.Event, fieldSelector *string) *domain.ResourceList[domain.Event] {
 	logrus.Infof("createEventsForOrg called with %d events, fieldSelector: %v", len(events), fieldSelector)
 
 	if fieldSelector == nil {
 		logrus.Info("No fieldSelector, returning all events")
-		return &api.EventList{Items: events}
+		return &domain.ResourceList[domain.Event]{Items: events}
 	}
 
 	// Simple timestamp filtering implementation
@@ -63,7 +64,7 @@ func createEventsForOrg(events []api.Event, fieldSelector *string) *api.EventLis
 			}
 			if err == nil {
 				logrus.Infof("Threshold parsed as: %s", threshold.Format(time.RFC3339Nano))
-				var filteredEvents []api.Event
+				var filteredEvents []domain.Event
 				for _, event := range events {
 					if event.Metadata.CreationTimestamp != nil {
 						eventTime := *event.Metadata.CreationTimestamp
@@ -78,12 +79,12 @@ func createEventsForOrg(events []api.Event, fieldSelector *string) *api.EventLis
 					}
 				}
 				logrus.Infof("Returning %d filtered events out of %d total events", len(filteredEvents), len(events))
-				return &api.EventList{Items: filteredEvents}
+				return &domain.ResourceList[domain.Event]{Items: filteredEvents}
 			}
 		}
 	}
 
-	return &api.EventList{Items: events}
+	return &domain.ResourceList[domain.Event]{Items: events}
 }
 
 var _ = Describe("Queue Maintenance Integration Tests", func() {
@@ -98,8 +99,8 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 		queueMaintenanceTask *tasks.QueueMaintenanceTask
 		testOrg1ID           uuid.UUID
 		testOrg2ID           uuid.UUID
-		testOrg1Events       []api.Event
-		testOrg2Events       []api.Event
+		testOrg1Events       []domain.Event
+		testOrg2Events       []domain.Event
 		checkpoints          map[string][]byte
 	)
 
@@ -119,11 +120,11 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 
 		// Create test events
 		baseTime := time.Now().Add(-1 * time.Hour)
-		testOrg1Events = []api.Event{
+		testOrg1Events = []domain.Event{
 			createTestEvent("event1-org1", baseTime.Add(10*time.Minute)),
 			createTestEvent("event2-org1", baseTime.Add(20*time.Minute)),
 		}
-		testOrg2Events = []api.Event{
+		testOrg2Events = []domain.Event{
 			createTestEvent("event1-org2", baseTime.Add(15*time.Minute)),
 			createTestEvent("event2-org2", baseTime.Add(25*time.Minute)),
 		}
@@ -196,7 +197,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 		It("should execute queue maintenance without errors", func() {
 			// Setup expectations for basic execution - recovery may or may not happen depending on Redis state
 			mockService.EXPECT().ListOrganizations(gomock.Any(), gomock.Any()).Return(
-				&api.OrganizationList{Items: []api.Organization{}}, api.Status{Code: 200}).AnyTimes()
+				&domain.ResourceList[domain.Organization]{Items: []domain.Organization{}}, api.Status{Code: 200}).AnyTimes()
 
 			// The queue maintenance will try to get checkpoint during recovery process
 			mockService.EXPECT().GetCheckpoint(gomock.Any(), "task_queue", "global_checkpoint").Return(
@@ -216,7 +217,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 		It("should handle empty system gracefully", func() {
 			// Setup expectations for empty organization list - recovery may or may not happen
 			mockService.EXPECT().ListOrganizations(gomock.Any(), gomock.Any()).Return(
-				&api.OrganizationList{Items: []api.Organization{}}, api.Status{Code: 200}).AnyTimes()
+				&domain.ResourceList[domain.Organization]{Items: []domain.Organization{}}, api.Status{Code: 200}).AnyTimes()
 
 			// The queue maintenance will try to get checkpoint during recovery process
 			mockService.EXPECT().GetCheckpoint(gomock.Any(), "task_queue", "global_checkpoint").Return(
@@ -253,15 +254,15 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 
 				// Setup expectations for ListEvents calls
 				mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, orgId uuid.UUID, params api.ListEventsParams) (*api.EventList, api.Status) {
+					func(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.ResourceList[domain.Event], domain.Status) {
 						// Use the orgId parameter directly
 						if orgId == testOrg1ID {
-							return createEventsForOrg(testOrg1Events, params.FieldSelector), api.Status{Code: 200}
+							return createEventsForOrg(testOrg1Events, params.FieldSelector), domain.Status{Code: 200}
 						} else if orgId == testOrg2ID {
-							return createEventsForOrg(testOrg2Events, params.FieldSelector), api.Status{Code: 200}
+							return createEventsForOrg(testOrg2Events, params.FieldSelector), domain.Status{Code: 200}
 						}
 
-						return &api.EventList{Items: []api.Event{}}, api.Status{Code: 200}
+						return &domain.ResourceList[domain.Event]{Items: []domain.Event{}}, domain.Status{Code: 200}
 					}).AnyTimes() // Allow multiple calls for debugging
 
 				// Mock CreateEvent calls for any internal task events that might be emitted
@@ -323,7 +324,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 
 				// Mock ListEvents for the organization (returns empty list)
 				mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(
-					&api.EventList{Items: []api.Event{}}, api.Status{Code: 200}).AnyTimes()
+					&domain.ResourceList[domain.Event]{Items: []domain.Event{}}, domain.Status{Code: 200}).AnyTimes()
 
 				// The queue maintenance will try to get checkpoint during recovery process
 				mockService.EXPECT().GetCheckpoint(gomock.Any(), "task_queue", "global_checkpoint").Return(
@@ -355,8 +356,8 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 
 			// Setup ListEvents expectation for recovery
 			mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(
-				&api.EventList{Items: []api.Event{createTestEvent("recent-event", time.Now().Add(-15*time.Minute))}},
-				api.Status{Code: 200})
+				&domain.ResourceList[domain.Event]{Items: []domain.Event{createTestEvent("recent-event", time.Now().Add(-15*time.Minute))}},
+				domain.Status{Code: 200})
 
 			// Mock CreateEvent calls for any internal task events that might be emitted
 			mockService.EXPECT().CreateEvent(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -375,7 +376,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 		It("should handle fresh system with no checkpoints", func() {
 			// Setup empty organizations - recovery may or may not happen
 			mockService.EXPECT().ListOrganizations(gomock.Any(), gomock.Any()).Return(
-				&api.OrganizationList{Items: []api.Organization{}}, api.Status{Code: 200}).AnyTimes()
+				&domain.ResourceList[domain.Organization]{Items: []domain.Organization{}}, api.Status{Code: 200}).AnyTimes()
 
 			// The queue maintenance will try to get checkpoint during recovery process
 			mockService.EXPECT().GetCheckpoint(gomock.Any(), "task_queue", "global_checkpoint").Return(
@@ -420,12 +421,12 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 
 		It("should handle invalid organization IDs", func() {
 			// Add organization with invalid name format
-			invalidOrg := api.Organization{
+			invalidOrg := domain.Organization{
 				ApiVersion: "v1beta1",
 				Kind:       api.OrganizationKind,
 				Metadata:   api.ObjectMeta{Name: lo.ToPtr("invalid-uuid")},
 			}
-			orgs := &api.OrganizationList{Items: []api.Organization{invalidOrg}}
+			orgs := &domain.ResourceList[domain.Organization]{Items: []domain.Organization{invalidOrg}}
 
 			mockService.EXPECT().ListOrganizations(gomock.Any(), gomock.Any()).Return(orgs, api.Status{Code: 200}).AnyTimes()
 
@@ -449,7 +450,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 		It("should handle message timeouts and retries", func() {
 			// Setup basic organizations for queue operations - recovery may or may not happen
 			mockService.EXPECT().ListOrganizations(gomock.Any(), gomock.Any()).Return(
-				&api.OrganizationList{Items: []api.Organization{}}, api.Status{Code: 200}).AnyTimes()
+				&domain.ResourceList[domain.Organization]{Items: []domain.Organization{}}, api.Status{Code: 200}).AnyTimes()
 
 			// The queue maintenance will try to get checkpoint during recovery process
 			mockService.EXPECT().GetCheckpoint(gomock.Any(), "task_queue", "global_checkpoint").Return(
@@ -473,7 +474,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 		It("should advance checkpoint after processing", func() {
 			// Setup basic organizations - recovery may or may not happen
 			mockService.EXPECT().ListOrganizations(gomock.Any(), gomock.Any()).Return(
-				&api.OrganizationList{Items: []api.Organization{}}, api.Status{Code: 200}).AnyTimes()
+				&domain.ResourceList[domain.Organization]{Items: []domain.Organization{}}, api.Status{Code: 200}).AnyTimes()
 
 			// The queue maintenance will try to get checkpoint during recovery process
 			mockService.EXPECT().GetCheckpoint(gomock.Any(), "task_queue", "global_checkpoint").Return(
@@ -497,8 +498,8 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 })
 
 // Helper function to create test events
-func createTestEvent(name string, timestamp time.Time) api.Event {
-	return api.Event{
+func createTestEvent(name string, timestamp time.Time) domain.Event {
+	return domain.Event{
 		ApiVersion: "v1beta1",
 		Kind:       api.EventKind,
 		Metadata: api.ObjectMeta{

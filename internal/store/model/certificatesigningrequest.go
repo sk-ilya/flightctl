@@ -27,7 +27,7 @@ func (csr CertificateSigningRequest) String() string {
 	return string(val)
 }
 
-func NewCertificateSigningRequestFromApiResource(resource *domain.CertificateSigningRequest) (*CertificateSigningRequest, error) {
+func NewCertificateSigningRequestFromDomain(resource *domain.CertificateSigningRequest) (*CertificateSigningRequest, error) {
 	if resource == nil || resource.Metadata.Name == nil {
 		return &CertificateSigningRequest{}, nil
 	}
@@ -61,7 +61,7 @@ func CertificateSigningRequestAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.CertificateSigningRequestAPIVersion)
 }
 
-func (csr *CertificateSigningRequest) ToApiResource(opts ...APIResourceOption) (*domain.CertificateSigningRequest, error) {
+func (csr *CertificateSigningRequest) ToDomain(opts ...APIResourceOption) (*domain.CertificateSigningRequest, error) {
 	if csr == nil {
 		return &domain.CertificateSigningRequest{}, nil
 	}
@@ -92,23 +92,18 @@ func (csr *CertificateSigningRequest) ToApiResource(opts ...APIResourceOption) (
 	}, nil
 }
 
-func CertificateSigningRequestsToApiResource(csrs []CertificateSigningRequest, cont *string, numRemaining *int64) (domain.CertificateSigningRequestList, error) {
+func CertificateSigningRequestsToDomain(csrs []CertificateSigningRequest, cont *string, numRemaining *int64) (domain.ResourceList[domain.CertificateSigningRequest], error) {
 	certificateSigningRequestList := make([]domain.CertificateSigningRequest, len(csrs))
 	for i, certificateSigningRequest := range csrs {
-		apiResource, _ := certificateSigningRequest.ToApiResource()
+		apiResource, _ := certificateSigningRequest.ToDomain()
 		certificateSigningRequestList[i] = *apiResource
 	}
-	ret := domain.CertificateSigningRequestList{
-		ApiVersion: CertificateSigningRequestAPIVersion(),
-		Kind:       domain.CertificateSigningRequestListKind,
-		Items:      certificateSigningRequestList,
-		Metadata:   domain.ListMeta{},
-	}
+	metadata := domain.Pagination{}
 	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
 	}
-	return ret, nil
+	return domain.NewResourceList(certificateSigningRequestList, metadata), nil
 }
 
 func CertificateSigningRequestPtrToCertificateSigningRequest(p *CertificateSigningRequest) *CertificateSigningRequest {

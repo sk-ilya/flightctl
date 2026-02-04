@@ -16,26 +16,26 @@ type Event interface {
 	InitialMigration(ctx context.Context) error
 
 	Create(ctx context.Context, orgId uuid.UUID, event *domain.Event) error
-	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.EventList, error)
+	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.Event], error)
 	DeleteOlderThan(ctx context.Context, cutoffTime time.Time) (int64, error)
 }
 
 type EventStore struct {
 	dbHandler    *gorm.DB
 	log          logrus.FieldLogger
-	genericStore *GenericStore[*model.Event, model.Event, domain.Event, domain.EventList]
+	genericStore *GenericStore[*model.Event, model.Event, domain.Event, domain.ResourceList[domain.Event]]
 }
 
 // Make sure we conform to Event interface
 var _ Event = (*EventStore)(nil)
 
 func NewEvent(db *gorm.DB, log logrus.FieldLogger) Event {
-	genericStore := NewGenericStore[*model.Event, model.Event, domain.Event, domain.EventList](
+	genericStore := NewGenericStore[*model.Event, model.Event, domain.Event, domain.ResourceList[domain.Event]](
 		db,
 		log,
-		model.NewEventFromApiResource,
-		(*model.Event).ToApiResource,
-		model.EventsToApiResource,
+		model.NewEventFromDomain,
+		(*model.Event).ToDomain,
+		model.EventsToDomain,
 	)
 	return &EventStore{dbHandler: db, log: log, genericStore: genericStore}
 }
@@ -55,12 +55,12 @@ func (s *EventStore) InitialMigration(ctx context.Context) error {
 }
 
 func (s *EventStore) Create(ctx context.Context, orgId uuid.UUID, resource *domain.Event) error {
-	m, _ := model.NewEventFromApiResource(resource)
+	m, _ := model.NewEventFromDomain(resource)
 	m.OrgID = orgId
 	return s.getDB(ctx).Create(&m).Error
 }
 
-func (s *EventStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.EventList, error) {
+func (s *EventStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.Event], error) {
 	return s.genericStore.List(ctx, orgId, listParams)
 }
 

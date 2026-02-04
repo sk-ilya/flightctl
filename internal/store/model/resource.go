@@ -72,7 +72,7 @@ func WithDevicesSummary(devicesSummary *domain.DevicesSummary) APIResourceOption
 }
 
 // WithoutServiceConditions returns an option that omits service-level conditions
-// from the API representation (see Device.ToApiResource).
+// from the API representation (see Device.ToDomain).
 func WithoutServiceConditions() APIResourceOption {
 	return func(o *apiResourceOptions) {
 		o.withoutServiceConditions = true

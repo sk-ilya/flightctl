@@ -5,7 +5,6 @@ import v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
 // ========== Resource Types ==========
 
 type Repository = v1beta1.Repository
-type RepositoryList = v1beta1.RepositoryList
 type RepositorySpec = v1beta1.RepositorySpec
 type RepositoryStatus = v1beta1.RepositoryStatus
 

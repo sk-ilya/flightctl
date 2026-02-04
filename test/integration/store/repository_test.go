@@ -133,26 +133,26 @@ var _ = Describe("RepositoryStore create", func() {
 			repositories, err := storeInst.Repository().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(repositories.Items)).To(Equal(1))
-			Expect(*repositories.Metadata.RemainingItemCount).To(Equal(int64(2)))
+			Expect(*repositories.Pagination.RemainingItemCount).To(Equal(int64(2)))
 			foundRepoNames[0] = *repositories.Items[0].Metadata.Name
 
-			cont, err := store.ParseContinueString(repositories.Metadata.Continue)
+			cont, err := store.ParseContinueString(repositories.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			repositories, err = storeInst.Repository().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(repositories.Items)).To(Equal(1))
-			Expect(*repositories.Metadata.RemainingItemCount).To(Equal(int64(1)))
+			Expect(*repositories.Pagination.RemainingItemCount).To(Equal(int64(1)))
 			foundRepoNames[1] = *repositories.Items[0].Metadata.Name
 
-			cont, err = store.ParseContinueString(repositories.Metadata.Continue)
+			cont, err = store.ParseContinueString(repositories.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			repositories, err = storeInst.Repository().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(repositories.Items)).To(Equal(1))
-			Expect(repositories.Metadata.RemainingItemCount).To(BeNil())
-			Expect(repositories.Metadata.Continue).To(BeNil())
+			Expect(repositories.Pagination.RemainingItemCount).To(BeNil())
+			Expect(repositories.Pagination.Continue).To(BeNil())
 			foundRepoNames[2] = *repositories.Items[0].Metadata.Name
 
 			for i := range allRepoNames {

@@ -161,10 +161,10 @@ func (r *reconciler) reconcileSelectionDevices(ctx context.Context, orgId uuid.U
 			r.serviceHandler.CreateEvent(ctx, orgId, common.GetFleetRolloutDeviceSelectedEvent(ctx, lo.FromPtr(d.Metadata.Name), lo.FromPtr(fleet.Metadata.Name), templateVersionName))
 		}
 		remaining = remaining - len(devices.Items)
-		if devices.Metadata.Continue == nil || remaining == 0 {
+		if devices.Pagination.Continue == nil || remaining == 0 {
 			break
 		}
-		listParams.Continue = devices.Metadata.Continue
+		listParams.Continue = devices.Pagination.Continue
 	}
 	return nil
 }

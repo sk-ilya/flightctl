@@ -122,7 +122,7 @@ var _ = Describe("DeviceStore create", func() {
 				return
 			}
 			otherupdate := api.Device{Metadata: api.ObjectMeta{Name: lo.ToPtr("mydevice-1")}, Spec: &api.DeviceSpec{Os: &api.DeviceOsSpec{Image: "bah"}}}
-			device, err := model.NewDeviceFromApiResource(&otherupdate)
+			device, err := model.NewDeviceFromDomain(&otherupdate)
 			device.OrgID = orgId
 			device.ResourceVersion = lo.ToPtr(int64(5))
 			Expect(err).ToNot(HaveOccurred())
@@ -243,26 +243,26 @@ var _ = Describe("DeviceStore create", func() {
 			devices, err := devStore.List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(devices.Items)).To(Equal(1))
-			Expect(*devices.Metadata.RemainingItemCount).To(Equal(int64(2)))
+			Expect(*devices.Pagination.RemainingItemCount).To(Equal(int64(2)))
 			foundDevNames[0] = *devices.Items[0].Metadata.Name
 
-			cont, err := store.ParseContinueString(devices.Metadata.Continue)
+			cont, err := store.ParseContinueString(devices.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			devices, err = devStore.List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(devices.Items)).To(Equal(1))
-			Expect(*devices.Metadata.RemainingItemCount).To(Equal(int64(1)))
+			Expect(*devices.Pagination.RemainingItemCount).To(Equal(int64(1)))
 			foundDevNames[1] = *devices.Items[0].Metadata.Name
 
-			cont, err = store.ParseContinueString(devices.Metadata.Continue)
+			cont, err = store.ParseContinueString(devices.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			devices, err = devStore.List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(devices.Items)).To(Equal(1))
-			Expect(devices.Metadata.RemainingItemCount).To(BeNil())
-			Expect(devices.Metadata.Continue).To(BeNil())
+			Expect(devices.Pagination.RemainingItemCount).To(BeNil())
+			Expect(devices.Pagination.Continue).To(BeNil())
 			foundDevNames[2] = *devices.Items[0].Metadata.Name
 
 			for i := range allDevNames {

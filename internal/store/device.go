@@ -65,7 +65,7 @@ type Device interface {
 	UpdateRendered(ctx context.Context, orgId uuid.UUID, name, renderedConfig, renderedApplications, specHash string) (string, error)
 	SetServiceConditions(ctx context.Context, orgId uuid.UUID, name string, conditions []domain.Condition, callback ServiceConditionsCallback) error
 	OverwriteRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string, repositoryNames ...string) error
-	GetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, error)
+	GetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], error)
 	PrepareDevicesAfterRestore(ctx context.Context) (int64, error)
 	RemoveConflictPausedAnnotation(ctx context.Context, orgId uuid.UUID, listParams ListParams) (int64, []string, error)
 	SetOutOfDate(ctx context.Context, orgId uuid.UUID, owner string) error
@@ -106,9 +106,9 @@ func NewDevice(db *gorm.DB, log logrus.FieldLogger) Device {
 	genericStore := NewGenericStore[*model.Device, model.Device, domain.Device, domain.DeviceList](
 		db,
 		log,
-		model.NewDeviceFromApiResource,
-		(*model.Device).ToApiResource,
-		model.DevicesToApiResource,
+		model.NewDeviceFromDomain,
+		(*model.Device).ToDomain,
+		model.DevicesToDomain,
 	)
 	return &DeviceStore{dbHandler: db, log: log, genericStore: genericStore}
 }
@@ -389,7 +389,7 @@ func (s *DeviceStore) getWithTimestamp(ctx context.Context, orgId uuid.UUID, nam
 	if device.RowsAffected == 0 {
 		return nil, flterrors.ErrResourceNotFound
 	}
-	ret, err := deviceModel.ToApiResource(opts...)
+	ret, err := deviceModel.ToDomain(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +463,7 @@ func (s *DeviceStore) ListDisconnected(ctx context.Context, orgId uuid.UUID, lis
 		numRemaining = &numRemainingVal
 	}
 
-	ret, err := model.DevicesToApiResource(devices, nextContinue, numRemaining)
+	ret, err := model.DevicesToDomain(devices, nextContinue, numRemaining)
 	if err != nil {
 		return nil, err
 	}
@@ -1037,7 +1037,7 @@ func (s *DeviceStore) GetRendered(ctx context.Context, orgId uuid.UUID, name str
 		return nil, ErrorFromGormError(result.Error)
 	}
 
-	return deviceModel.ToApiResource(model.WithRendered(knownRenderedVersion))
+	return deviceModel.ToDomain(model.WithRendered(knownRenderedVersion))
 }
 
 func (s *DeviceStore) GetLastSeen(ctx context.Context, orgId uuid.UUID, name string) (*time.Time, error) {
@@ -1095,7 +1095,7 @@ func (s *DeviceStore) setServiceConditions(ctx context.Context, orgId uuid.UUID,
 	// Call callback if provided (but don't fail the operation if callback fails)
 	if callback != nil {
 		// Convert the updated model to API resource for the callback
-		apiDevice, convertErr := existingRecord.ToApiResource()
+		apiDevice, convertErr := existingRecord.ToDomain()
 		if convertErr != nil {
 			// Log the error but don't fail the operation
 			s.log.Errorf("Failed to convert device to API resource for callback: %v", convertErr)
@@ -1142,14 +1142,14 @@ func (s *DeviceStore) OverwriteRepositoryRefs(ctx context.Context, orgId uuid.UU
 	})
 }
 
-func (s *DeviceStore) GetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, error) {
+func (s *DeviceStore) GetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], error) {
 	device := model.Device{Resource: model.Resource{OrgID: orgId, Name: name}}
 	var repos []model.Repository
 	err := s.getDB(ctx).Model(&device).Association("Repositories").Find(&repos)
 	if err != nil {
 		return nil, ErrorFromGormError(err)
 	}
-	repositories, err := model.RepositoriesToApiResource(repos, nil, nil)
+	repositories, err := model.RepositoriesToDomain(repos, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1220,7 +1220,7 @@ func (s *DeviceStore) ListDevicesByServiceCondition(ctx context.Context, orgId u
 		}
 	}
 
-	result, err := model.DevicesToApiResource(devices, nextContinue, numRemaining)
+	result, err := model.DevicesToDomain(devices, nextContinue, numRemaining)
 	return &result, err
 }
 

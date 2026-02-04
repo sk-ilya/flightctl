@@ -27,7 +27,7 @@ func (rs *ResourceSync) String() string {
 	return string(val)
 }
 
-func NewResourceSyncFromApiResource(resource *domain.ResourceSync) (*ResourceSync, error) {
+func NewResourceSyncFromDomain(resource *domain.ResourceSync) (*ResourceSync, error) {
 	if resource == nil || resource.Metadata.Name == nil {
 		return &ResourceSync{}, nil
 	}
@@ -60,7 +60,7 @@ func ResourceSyncAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.ResourceSyncAPIVersion)
 }
 
-func (rs *ResourceSync) ToApiResource(opts ...APIResourceOption) (*domain.ResourceSync, error) {
+func (rs *ResourceSync) ToDomain(opts ...APIResourceOption) (*domain.ResourceSync, error) {
 	if rs == nil {
 		return &domain.ResourceSync{}, nil
 	}
@@ -91,23 +91,18 @@ func (rs *ResourceSync) ToApiResource(opts ...APIResourceOption) (*domain.Resour
 	}, nil
 }
 
-func ResourceSyncsToApiResource(rss []ResourceSync, cont *string, numRemaining *int64) (domain.ResourceSyncList, error) {
+func ResourceSyncsToDomain(rss []ResourceSync, cont *string, numRemaining *int64) (domain.ResourceList[domain.ResourceSync], error) {
 	resourceSyncList := make([]domain.ResourceSync, len(rss))
 	for i, resourceSync := range rss {
-		apiResource, _ := resourceSync.ToApiResource()
+		apiResource, _ := resourceSync.ToDomain()
 		resourceSyncList[i] = *apiResource
 	}
-	ret := domain.ResourceSyncList{
-		ApiVersion: ResourceSyncAPIVersion(),
-		Kind:       domain.ResourceSyncListKind,
-		Items:      resourceSyncList,
-		Metadata:   domain.ListMeta{},
-	}
+	metadata := domain.Pagination{}
 	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
 	}
-	return ret, nil
+	return domain.NewResourceList(resourceSyncList, metadata), nil
 }
 
 func (rs *ResourceSync) GetKind() string {

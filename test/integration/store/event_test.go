@@ -89,11 +89,11 @@ var _ = Describe("EventStore Integration Tests", func() {
 			// Verify order (should be descending by timestamp - newest first)
 			Expect(*(eventList.Items[0].Metadata.Name)).To(Equal("event6"))
 			Expect(*(eventList.Items[1].Metadata.Name)).To(Equal("event5"))
-			Expect(eventList.Metadata.Continue).ToNot(BeNil())
-			Expect(eventList.Metadata.RemainingItemCount).ToNot(BeNil())
-			Expect(*eventList.Metadata.RemainingItemCount).To(Equal(int64(4)))
+			Expect(eventList.Pagination.Continue).ToNot(BeNil())
+			Expect(eventList.Pagination.RemainingItemCount).ToNot(BeNil())
+			Expect(*eventList.Pagination.RemainingItemCount).To(Equal(int64(4)))
 
-			cont, err := store.ParseContinueString(eventList.Metadata.Continue)
+			cont, err := store.ParseContinueString(eventList.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			eventList, err = storeInst.Event().List(ctx, orgId, listParams)
@@ -101,11 +101,11 @@ var _ = Describe("EventStore Integration Tests", func() {
 			Expect(eventList.Items).To(HaveLen(2))
 			Expect(*(eventList.Items[0].Metadata.Name)).To(Equal("event4"))
 			Expect(*(eventList.Items[1].Metadata.Name)).To(Equal("event3"))
-			Expect(eventList.Metadata.Continue).ToNot(BeNil())
-			Expect(eventList.Metadata.RemainingItemCount).ToNot(BeNil())
-			Expect(*eventList.Metadata.RemainingItemCount).To(Equal(int64(2)))
+			Expect(eventList.Pagination.Continue).ToNot(BeNil())
+			Expect(eventList.Pagination.RemainingItemCount).ToNot(BeNil())
+			Expect(*eventList.Pagination.RemainingItemCount).To(Equal(int64(2)))
 
-			cont, err = store.ParseContinueString(eventList.Metadata.Continue)
+			cont, err = store.ParseContinueString(eventList.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			eventList, err = storeInst.Event().List(ctx, orgId, listParams)
@@ -113,8 +113,8 @@ var _ = Describe("EventStore Integration Tests", func() {
 			Expect(eventList.Items).To(HaveLen(2))
 			Expect(*(eventList.Items[0].Metadata.Name)).To(Equal("event2"))
 			Expect(*(eventList.Items[1].Metadata.Name)).To(Equal("event1"))
-			Expect(eventList.Metadata.Continue).To(BeNil())
-			Expect(eventList.Metadata.RemainingItemCount).To(BeNil())
+			Expect(eventList.Pagination.Continue).To(BeNil())
+			Expect(eventList.Pagination.RemainingItemCount).To(BeNil())
 		})
 
 		It("Filters events by reason", func() {

@@ -21,7 +21,7 @@ type ResourceSync interface {
 	Update(ctx context.Context, orgId uuid.UUID, resourceSync *domain.ResourceSync, callbackEvent EventCallback) (*domain.ResourceSync, error)
 	CreateOrUpdate(ctx context.Context, orgId uuid.UUID, resourceSync *domain.ResourceSync, callbackEvent EventCallback) (*domain.ResourceSync, bool, error)
 	Get(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceSync, error)
-	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceSyncList, error)
+	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.ResourceSync], error)
 	Delete(ctx context.Context, orgId uuid.UUID, name string, callback RemoveOwnerCallback, callbackEvent EventCallback) error
 	UpdateStatus(ctx context.Context, orgId uuid.UUID, resource *domain.ResourceSync, eventCallback EventCallback) (*domain.ResourceSync, error)
 	Count(ctx context.Context, orgId uuid.UUID, listParams ListParams) (int64, error)
@@ -38,7 +38,7 @@ type CountByResourceSyncOrgAndStatusResult struct {
 type ResourceSyncStore struct {
 	dbHandler           *gorm.DB
 	log                 logrus.FieldLogger
-	genericStore        *GenericStore[*model.ResourceSync, model.ResourceSync, domain.ResourceSync, domain.ResourceSyncList]
+	genericStore        *GenericStore[*model.ResourceSync, model.ResourceSync, domain.ResourceSync, domain.ResourceList[domain.ResourceSync]]
 	eventCallbackCaller EventCallbackCaller
 }
 
@@ -48,12 +48,12 @@ var _ ResourceSync = (*ResourceSyncStore)(nil)
 type RemoveOwnerCallback func(ctx context.Context, tx *gorm.DB, orgId uuid.UUID, owner string) error
 
 func NewResourceSync(db *gorm.DB, log logrus.FieldLogger) ResourceSync {
-	genericStore := NewGenericStore[*model.ResourceSync, model.ResourceSync, domain.ResourceSync, domain.ResourceSyncList](
+	genericStore := NewGenericStore[*model.ResourceSync, model.ResourceSync, domain.ResourceSync, domain.ResourceList[domain.ResourceSync]](
 		db,
 		log,
-		model.NewResourceSyncFromApiResource,
-		(*model.ResourceSync).ToApiResource,
-		model.ResourceSyncsToApiResource,
+		model.NewResourceSyncFromDomain,
+		(*model.ResourceSync).ToDomain,
+		model.ResourceSyncsToDomain,
 	)
 	return &ResourceSyncStore{dbHandler: db, log: log, genericStore: genericStore, eventCallbackCaller: CallEventCallback(domain.ResourceSyncKind, log)}
 }
@@ -120,7 +120,7 @@ func (s *ResourceSyncStore) Get(ctx context.Context, orgId uuid.UUID, name strin
 	return s.genericStore.Get(ctx, orgId, name)
 }
 
-func (s *ResourceSyncStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceSyncList, error) {
+func (s *ResourceSyncStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.ResourceSync], error) {
 	return s.genericStore.List(ctx, orgId, listParams)
 }
 

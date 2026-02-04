@@ -8,6 +8,7 @@ import (
 	"github.com/flightctl/flightctl/api/core/v1beta1"
 	api "github.com/flightctl/flightctl/api/imagebuilder/v1alpha1"
 	"github.com/flightctl/flightctl/internal/crypto"
+	"github.com/flightctl/flightctl/internal/domain"
 	"github.com/flightctl/flightctl/internal/flterrors"
 	"github.com/flightctl/flightctl/internal/store"
 	"github.com/flightctl/flightctl/pkg/log"
@@ -18,12 +19,12 @@ import (
 
 // mockStore is a mock implementation of store.Store for testing
 type mockStore struct {
-	repositories map[string]*v1beta1.Repository
+	repositories map[string]*domain.Repository
 }
 
 func newMockStore() *mockStore {
 	return &mockStore{
-		repositories: make(map[string]*v1beta1.Repository),
+		repositories: make(map[string]*domain.Repository),
 	}
 }
 
@@ -50,7 +51,7 @@ type mockRepositoryStore struct {
 	store *mockStore
 }
 
-func (m *mockRepositoryStore) Get(ctx context.Context, orgId uuid.UUID, name string) (*v1beta1.Repository, error) {
+func (m *mockRepositoryStore) Get(ctx context.Context, orgId uuid.UUID, name string) (*domain.Repository, error) {
 	repo, ok := m.store.repositories[name]
 	if !ok {
 		return nil, flterrors.ErrResourceNotFound
@@ -59,28 +60,28 @@ func (m *mockRepositoryStore) Get(ctx context.Context, orgId uuid.UUID, name str
 }
 
 func (m *mockRepositoryStore) InitialMigration(context.Context) error { return nil }
-func (m *mockRepositoryStore) Create(context.Context, uuid.UUID, *v1beta1.Repository, store.EventCallback) (*v1beta1.Repository, error) {
+func (m *mockRepositoryStore) Create(context.Context, uuid.UUID, *domain.Repository, store.EventCallback) (*domain.Repository, error) {
 	return nil, nil
 }
-func (m *mockRepositoryStore) Update(context.Context, uuid.UUID, *v1beta1.Repository, store.EventCallback) (*v1beta1.Repository, error) {
+func (m *mockRepositoryStore) Update(context.Context, uuid.UUID, *domain.Repository, store.EventCallback) (*domain.Repository, error) {
 	return nil, nil
 }
-func (m *mockRepositoryStore) CreateOrUpdate(context.Context, uuid.UUID, *v1beta1.Repository, store.EventCallback) (*v1beta1.Repository, bool, error) {
+func (m *mockRepositoryStore) CreateOrUpdate(context.Context, uuid.UUID, *domain.Repository, store.EventCallback) (*domain.Repository, bool, error) {
 	return nil, false, nil
 }
-func (m *mockRepositoryStore) List(context.Context, uuid.UUID, store.ListParams) (*v1beta1.RepositoryList, error) {
+func (m *mockRepositoryStore) List(context.Context, uuid.UUID, store.ListParams) (*domain.ResourceList[domain.Repository], error) {
 	return nil, nil
 }
 func (m *mockRepositoryStore) Delete(context.Context, uuid.UUID, string, store.EventCallback) error {
 	return nil
 }
-func (m *mockRepositoryStore) UpdateStatus(context.Context, uuid.UUID, *v1beta1.Repository, store.EventCallback) (*v1beta1.Repository, error) {
+func (m *mockRepositoryStore) UpdateStatus(context.Context, uuid.UUID, *domain.Repository, store.EventCallback) (*domain.Repository, error) {
 	return nil, nil
 }
-func (m *mockRepositoryStore) GetFleetRefs(context.Context, uuid.UUID, string) (*v1beta1.FleetList, error) {
+func (m *mockRepositoryStore) GetFleetRefs(context.Context, uuid.UUID, string) (*domain.ResourceList[domain.Fleet], error) {
 	return nil, nil
 }
-func (m *mockRepositoryStore) GetDeviceRefs(context.Context, uuid.UUID, string) (*v1beta1.DeviceList, error) {
+func (m *mockRepositoryStore) GetDeviceRefs(context.Context, uuid.UUID, string) (*domain.DeviceList, error) {
 	return nil, nil
 }
 func (m *mockRepositoryStore) Count(context.Context, uuid.UUID, store.ListParams) (int64, error) {

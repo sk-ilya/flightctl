@@ -83,10 +83,10 @@ func (t *DeviceDisconnected) Poll(ctx context.Context, orgID uuid.UUID) {
 
 		totalProcessed += len(devices.Items)
 
-		if devices.Metadata.Continue == nil {
+		if devices.Pagination.Continue == nil {
 			break
 		}
-		listParams.Continue = devices.Metadata.Continue
+		listParams.Continue = devices.Pagination.Continue
 	}
 
 	if totalProcessed > 0 {

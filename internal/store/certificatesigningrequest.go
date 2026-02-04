@@ -20,7 +20,7 @@ type CertificateSigningRequest interface {
 	Update(ctx context.Context, orgId uuid.UUID, req *domain.CertificateSigningRequest, eventCallback EventCallback) (*domain.CertificateSigningRequest, error)
 	CreateOrUpdate(ctx context.Context, orgId uuid.UUID, certificatesigningrequest *domain.CertificateSigningRequest, eventCallback EventCallback) (*domain.CertificateSigningRequest, bool, error)
 	Get(ctx context.Context, orgId uuid.UUID, name string) (*domain.CertificateSigningRequest, error)
-	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.CertificateSigningRequestList, error)
+	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.CertificateSigningRequest], error)
 	Delete(ctx context.Context, orgId uuid.UUID, name string, eventCallback EventCallback) error
 	UpdateStatus(ctx context.Context, orgId uuid.UUID, certificatesigningrequest *domain.CertificateSigningRequest) (*domain.CertificateSigningRequest, error)
 
@@ -30,7 +30,7 @@ type CertificateSigningRequest interface {
 type CertificateSigningRequestStore struct {
 	dbHandler           *gorm.DB
 	log                 logrus.FieldLogger
-	genericStore        *GenericStore[*model.CertificateSigningRequest, model.CertificateSigningRequest, domain.CertificateSigningRequest, domain.CertificateSigningRequestList]
+	genericStore        *GenericStore[*model.CertificateSigningRequest, model.CertificateSigningRequest, domain.CertificateSigningRequest, domain.ResourceList[domain.CertificateSigningRequest]]
 	eventCallbackCaller EventCallbackCaller
 }
 
@@ -38,12 +38,12 @@ type CertificateSigningRequestStore struct {
 var _ CertificateSigningRequest = (*CertificateSigningRequestStore)(nil)
 
 func NewCertificateSigningRequest(db *gorm.DB, log logrus.FieldLogger) CertificateSigningRequest {
-	genericStore := NewGenericStore[*model.CertificateSigningRequest, model.CertificateSigningRequest, domain.CertificateSigningRequest, domain.CertificateSigningRequestList](
+	genericStore := NewGenericStore[*model.CertificateSigningRequest, model.CertificateSigningRequest, domain.CertificateSigningRequest, domain.ResourceList[domain.CertificateSigningRequest]](
 		db,
 		log,
-		model.NewCertificateSigningRequestFromApiResource,
-		(*model.CertificateSigningRequest).ToApiResource,
-		model.CertificateSigningRequestsToApiResource,
+		model.NewCertificateSigningRequestFromDomain,
+		(*model.CertificateSigningRequest).ToDomain,
+		model.CertificateSigningRequestsToDomain,
 	)
 	return &CertificateSigningRequestStore{dbHandler: db, log: log, genericStore: genericStore, eventCallbackCaller: CallEventCallback(domain.CertificateSigningRequestKind, log)}
 }
@@ -112,7 +112,7 @@ func (s *CertificateSigningRequestStore) Get(ctx context.Context, orgId uuid.UUI
 	return s.genericStore.Get(ctx, orgId, name)
 }
 
-func (s *CertificateSigningRequestStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.CertificateSigningRequestList, error) {
+func (s *CertificateSigningRequestStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.CertificateSigningRequest], error) {
 	return s.genericStore.List(ctx, orgId, listParams)
 }
 

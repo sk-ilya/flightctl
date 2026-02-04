@@ -136,10 +136,10 @@ func (f FleetRolloutsLogic) RolloutFleet(ctx context.Context) error {
 			}
 		}
 
-		if devices.Metadata.Continue == nil {
+		if devices.Pagination.Continue == nil {
 			break
 		}
-		listParams.Continue = devices.Metadata.Continue
+		listParams.Continue = devices.Pagination.Continue
 	}
 
 	if failureCount != 0 {

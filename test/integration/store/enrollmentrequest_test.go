@@ -93,26 +93,26 @@ var _ = Describe("enrollmentRequestStore create", func() {
 			enrollmentrequests, err := storeInst.EnrollmentRequest().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(enrollmentrequests.Items)).To(Equal(1))
-			Expect(*enrollmentrequests.Metadata.RemainingItemCount).To(Equal(int64(2)))
+			Expect(*enrollmentrequests.Pagination.RemainingItemCount).To(Equal(int64(2)))
 			foundDevNames[0] = *enrollmentrequests.Items[0].Metadata.Name
 
-			cont, err := store.ParseContinueString(enrollmentrequests.Metadata.Continue)
+			cont, err := store.ParseContinueString(enrollmentrequests.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			enrollmentrequests, err = storeInst.EnrollmentRequest().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(enrollmentrequests.Items)).To(Equal(1))
-			Expect(*enrollmentrequests.Metadata.RemainingItemCount).To(Equal(int64(1)))
+			Expect(*enrollmentrequests.Pagination.RemainingItemCount).To(Equal(int64(1)))
 			foundDevNames[1] = *enrollmentrequests.Items[0].Metadata.Name
 
-			cont, err = store.ParseContinueString(enrollmentrequests.Metadata.Continue)
+			cont, err = store.ParseContinueString(enrollmentrequests.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			enrollmentrequests, err = storeInst.EnrollmentRequest().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(enrollmentrequests.Items)).To(Equal(1))
-			Expect(enrollmentrequests.Metadata.RemainingItemCount).To(BeNil())
-			Expect(enrollmentrequests.Metadata.Continue).To(BeNil())
+			Expect(enrollmentrequests.Pagination.RemainingItemCount).To(BeNil())
+			Expect(enrollmentrequests.Pagination.Continue).To(BeNil())
 			foundDevNames[2] = *enrollmentrequests.Items[0].Metadata.Name
 
 			for i := range allDevNames {

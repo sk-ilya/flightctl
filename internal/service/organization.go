@@ -28,7 +28,7 @@ func organizationModelToAPI(org *model.Organization) domain.Organization {
 	}
 }
 
-func (h *ServiceHandler) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.OrganizationList, domain.Status) {
+func (h *ServiceHandler) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.ResourceList[domain.Organization], domain.Status) {
 	var orgs []*model.Organization
 	var err error
 	listParams, status := prepareListParams(nil, nil, params.FieldSelector, nil)
@@ -70,12 +70,11 @@ func (h *ServiceHandler) ListOrganizations(ctx context.Context, params domain.Li
 		apiOrgs[i] = organizationModelToAPI(org)
 	}
 
-	return &domain.OrganizationList{
-		Items:      apiOrgs,
-		ApiVersion: organizationApiVersion,
-		Kind:       domain.OrganizationListKind,
-		Metadata:   domain.ListMeta{},
-	}, domain.StatusOK()
+	list := domain.NewResourceList(
+		apiOrgs,
+		domain.Pagination{},
+	)
+	return &list, domain.StatusOK()
 }
 
 func (h *ServiceHandler) listUserOrganizations(ctx context.Context) ([]*model.Organization, error) {

@@ -1,3 +1,5 @@
+//go:build !goverter
+
 package v1beta1
 
 // Converter aggregates all resource-specific converters for v1beta1 API.
@@ -34,18 +36,18 @@ type converterImpl struct {
 // NewConverter creates a new Converter instance with all resource converters.
 func NewConverter() Converter {
 	return &converterImpl{
-		device:                    NewDeviceConverter(),
-		fleet:                     NewFleetConverter(),
-		repository:                NewRepositoryConverter(),
-		enrollmentRequest:         NewEnrollmentRequestConverter(),
-		certificateSigningRequest: NewCertificateSigningRequestConverter(),
-		authProvider:              NewAuthProviderConverter(),
-		resourceSync:              NewResourceSyncConverter(),
-		templateVersion:           NewTemplateVersionConverter(),
-		event:                     NewEventConverter(),
-		organization:              NewOrganizationConverter(),
-		common:                    NewCommonConverter(),
-		auth:                      NewAuthConverter(),
+		device:                    &DeviceConverterImpl{},
+		fleet:                     &FleetConverterImpl{},
+		repository:                &RepositoryConverterImpl{},
+		enrollmentRequest:         &EnrollmentRequestConverterImpl{},
+		certificateSigningRequest: &CertificateSigningRequestConverterImpl{},
+		authProvider:              &AuthProviderConverterImpl{},
+		resourceSync:              &ResourceSyncConverterImpl{},
+		templateVersion:           &TemplateVersionConverterImpl{},
+		event:                     &EventConverterImpl{},
+		organization:              &OrganizationConverterImpl{},
+		common:                    &CommonConverterImpl{},
+		auth:                      &AuthConverterImpl{},
 	}
 }
 

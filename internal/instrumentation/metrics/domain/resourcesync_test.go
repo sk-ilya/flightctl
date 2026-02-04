@@ -56,7 +56,7 @@ func (m *MockResourceSync) CreateOrUpdate(ctx context.Context, orgId uuid.UUID, 
 func (m *MockResourceSync) Get(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceSync, error) {
 	return nil, nil
 }
-func (m *MockResourceSync) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.ResourceSyncList, error) {
+func (m *MockResourceSync) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams) (*domain.ResourceList[domain.ResourceSync], error) {
 	return nil, nil
 }
 func (m *MockResourceSync) Delete(ctx context.Context, orgId uuid.UUID, name string, callback store.RemoveOwnerCallback, callbackEvent store.EventCallback) error {

@@ -5,7 +5,6 @@ import v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
 // ========== Resource Types ==========
 
 type Fleet = v1beta1.Fleet
-type FleetList = v1beta1.FleetList
 type FleetSpec = v1beta1.FleetSpec
 type FleetStatus = v1beta1.FleetStatus
 

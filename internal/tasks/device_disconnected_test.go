@@ -146,7 +146,7 @@ func batchCreateDeviceTransaction(ctx context.Context, db *gorm.DB, devices []do
 	return db.WithContext(ctx).Transaction(func(innerTx *gorm.DB) (err error) {
 		for _, device := range devices {
 			deviceCopy := device
-			modelDevice, err := model.NewDeviceFromApiResource(&deviceCopy)
+			modelDevice, err := model.NewDeviceFromDomain(&deviceCopy)
 			if err != nil {
 				return flterrors.ErrIllegalResourceVersionFormat
 			}

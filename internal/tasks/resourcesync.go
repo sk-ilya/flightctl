@@ -69,7 +69,7 @@ func (r *ResourceSync) Poll(ctx context.Context, orgId uuid.UUID) {
 			}
 		}
 
-		continueToken = resourcesyncs.Metadata.Continue
+		continueToken = resourcesyncs.Pagination.Continue
 		if continueToken == nil {
 			break
 		}
@@ -181,7 +181,7 @@ func (r *ResourceSync) SyncFleets(ctx context.Context, log logrus.FieldLogger, o
 		FieldSelector: lo.ToPtr(fmt.Sprintf("metadata.owner=%s", *owner)),
 	}
 	for {
-		var listRes *domain.FleetList
+		var listRes *domain.ResourceList[domain.Fleet]
 		var status domain.Status
 		listRes, status = r.serviceHandler.ListFleets(ctx, orgId, listParams)
 		if status.Code != http.StatusOK {
@@ -191,10 +191,10 @@ func (r *ResourceSync) SyncFleets(ctx context.Context, log logrus.FieldLogger, o
 			return err
 		}
 		fleetsPreOwned = append(fleetsPreOwned, listRes.Items...)
-		if listRes.Metadata.Continue == nil {
+		if listRes.Pagination.Continue == nil {
 			break
 		}
-		listParams.Continue = listRes.Metadata.Continue
+		listParams.Continue = listRes.Pagination.Continue
 	}
 
 	fleetsToRemove := fleetsDelta(fleetsPreOwned, fleets)

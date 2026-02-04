@@ -142,26 +142,26 @@ var _ = Describe("ResourceSyncStore create", func() {
 			resourcesyncs, err := storeInst.ResourceSync().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(resourcesyncs.Items)).To(Equal(1))
-			Expect(*resourcesyncs.Metadata.RemainingItemCount).To(Equal(int64(2)))
+			Expect(*resourcesyncs.Pagination.RemainingItemCount).To(Equal(int64(2)))
 			foundNames[0] = *resourcesyncs.Items[0].Metadata.Name
 
-			cont, err := store.ParseContinueString(resourcesyncs.Metadata.Continue)
+			cont, err := store.ParseContinueString(resourcesyncs.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			resourcesyncs, err = storeInst.ResourceSync().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(resourcesyncs.Items)).To(Equal(1))
-			Expect(*resourcesyncs.Metadata.RemainingItemCount).To(Equal(int64(1)))
+			Expect(*resourcesyncs.Pagination.RemainingItemCount).To(Equal(int64(1)))
 			foundNames[1] = *resourcesyncs.Items[0].Metadata.Name
 
-			cont, err = store.ParseContinueString(resourcesyncs.Metadata.Continue)
+			cont, err = store.ParseContinueString(resourcesyncs.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			resourcesyncs, err = storeInst.ResourceSync().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(resourcesyncs.Items)).To(Equal(1))
-			Expect(resourcesyncs.Metadata.RemainingItemCount).To(BeNil())
-			Expect(resourcesyncs.Metadata.Continue).To(BeNil())
+			Expect(resourcesyncs.Pagination.RemainingItemCount).To(BeNil())
+			Expect(resourcesyncs.Pagination.Continue).To(BeNil())
 			foundNames[2] = *resourcesyncs.Items[0].Metadata.Name
 
 			for i := range allNames {

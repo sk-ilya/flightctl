@@ -77,12 +77,12 @@ func (f *publisherTestFixture) clearHeap() {
 }
 
 type mockOrganizationService struct {
-	organizations *domain.OrganizationList
+	organizations *domain.ResourceList[domain.Organization]
 	status        domain.Status
 	callCount     int
 }
 
-func (m *mockOrganizationService) ListOrganizations(ctx context.Context, _ domain.ListOrganizationsParams) (*domain.OrganizationList, domain.Status) {
+func (m *mockOrganizationService) ListOrganizations(ctx context.Context, _ domain.ListOrganizationsParams) (*domain.ResourceList[domain.Organization], domain.Status) {
 	m.callCount++
 	return m.organizations, m.status
 }
@@ -120,8 +120,8 @@ func createPublisherTestLogger() logrus.FieldLogger {
 	return logger
 }
 
-func createTestOrganizations(count int) *domain.OrganizationList {
-	organizations := &domain.OrganizationList{
+func createTestOrganizations(count int) *domain.ResourceList[domain.Organization] {
+	organizations := &domain.ResourceList[domain.Organization]{
 		Items: make([]domain.Organization, count),
 	}
 

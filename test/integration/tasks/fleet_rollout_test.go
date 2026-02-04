@@ -357,7 +357,7 @@ var _ = Describe("FleetRollout", func() {
 					Spec:   &api.DeviceSpec{},
 					Status: &api.DeviceStatus{},
 				}
-				device, err := model.NewDeviceFromApiResource(&otherupdate)
+				device, err := model.NewDeviceFromDomain(&otherupdate)
 				Expect(err).ToNot(HaveOccurred())
 				device.OrgID = orgId
 				result := db.WithContext(ctx).Updates(device)
@@ -406,7 +406,7 @@ var _ = Describe("FleetRollout", func() {
 					Spec:   &api.DeviceSpec{},
 					Status: &api.DeviceStatus{},
 				}
-				device, err := model.NewDeviceFromApiResource(&otherupdate)
+				device, err := model.NewDeviceFromDomain(&otherupdate)
 				Expect(err).ToNot(HaveOccurred())
 				device.OrgID = orgId
 				result := db.WithContext(ctx).Updates(device)

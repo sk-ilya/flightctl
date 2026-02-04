@@ -173,7 +173,7 @@ func (e *EventProcessor) processOrganizationEvents(ctx context.Context, orgID uu
 
 		pageLogger.WithFields(logrus.Fields{
 			"events_in_page": len(events.Items),
-			"has_continue":   events.Metadata.Continue != nil,
+			"has_continue":   events.Pagination.Continue != nil,
 		}).Debug("Retrieved events page")
 
 		for _, ev := range events.Items {
@@ -209,10 +209,10 @@ func (e *EventProcessor) processOrganizationEvents(ctx context.Context, orgID uu
 			checkpointCtx.processEvent(ev, orgID)
 		}
 
-		if events.Metadata.Continue == nil {
+		if events.Pagination.Continue == nil {
 			break // No more events to process
 		}
-		params.Continue = events.Metadata.Continue
+		params.Continue = events.Pagination.Continue
 	}
 
 	return totalEvents, totalPages, validationErrors, nil

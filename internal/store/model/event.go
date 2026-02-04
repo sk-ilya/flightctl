@@ -26,7 +26,7 @@ func (e Event) String() string {
 	return string(val)
 }
 
-func NewEventFromApiResource(resource *domain.Event) (*Event, error) {
+func NewEventFromDomain(resource *domain.Event) (*Event, error) {
 	if resource == nil {
 		return &Event{}, nil
 	}
@@ -54,7 +54,7 @@ func EventAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.EventAPIVersion)
 }
 
-func (e *Event) ToApiResource(opts ...APIResourceOption) (*domain.Event, error) {
+func (e *Event) ToDomain(opts ...APIResourceOption) (*domain.Event, error) {
 	if e == nil {
 		return &domain.Event{}, nil
 	}
@@ -87,24 +87,19 @@ func (e *Event) ToApiResource(opts ...APIResourceOption) (*domain.Event, error) 
 	}, nil
 }
 
-func EventsToApiResource(events []Event, cont *string, numRemaining *int64) (domain.EventList, error) {
+func EventsToDomain(events []Event, cont *string, numRemaining *int64) (domain.ResourceList[domain.Event], error) {
 	eventList := make([]domain.Event, len(events))
 	for i, event := range events {
 		var opts []APIResourceOption
-		apiResource, _ := event.ToApiResource(opts...)
+		apiResource, _ := event.ToDomain(opts...)
 		eventList[i] = *apiResource
 	}
-	ret := domain.EventList{
-		ApiVersion: EventAPIVersion(),
-		Kind:       domain.EventListKind,
-		Items:      eventList,
-		Metadata:   domain.ListMeta{},
-	}
+	metadata := domain.Pagination{}
 	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
 	}
-	return ret, nil
+	return domain.NewResourceList(eventList, metadata), nil
 }
 
 func (e *Event) GetKind() string {

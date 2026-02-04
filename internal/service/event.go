@@ -15,7 +15,7 @@ func (h *ServiceHandler) CreateEvent(ctx context.Context, orgId uuid.UUID, event
 	h.eventHandler.CreateEvent(ctx, orgId, event)
 }
 
-func (h *ServiceHandler) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.EventList, domain.Status) {
+func (h *ServiceHandler) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.ResourceList[domain.Event], domain.Status) {
 	listParams, status := prepareListParams(params.Continue, nil, params.FieldSelector, params.Limit)
 	if status != domain.StatusOK() {
 		return nil, status

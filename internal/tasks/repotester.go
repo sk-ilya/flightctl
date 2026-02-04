@@ -107,7 +107,7 @@ func (r *RepoTester) TestRepositories(ctx context.Context, orgId uuid.UUID) {
 			r.testRepository(ctx, orgId, repository, tester)
 		}
 
-		continueToken = repositories.Metadata.Continue
+		continueToken = repositories.Pagination.Continue
 		if continueToken == nil {
 			break
 		}

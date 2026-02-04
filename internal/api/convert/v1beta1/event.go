@@ -5,25 +5,15 @@ import (
 	"github.com/flightctl/flightctl/internal/domain"
 )
 
-// EventConverter converts between v1beta1 API types and domain types for Event resources.
+// goverter:converter
+// goverter:output:file ./event_conv.gen.go
+// goverter:name EventConverterImpl
+// goverter:skipCopySameType
 type EventConverter interface {
-	ListFromDomain(*domain.EventList) *apiv1beta1.EventList
+	// goverter:map . ApiVersion | APIVersion
+	// goverter:map . Kind | EventListKind
+	// goverter:map Pagination Metadata
+	ListFromDomain(*domain.ResourceList[domain.Event]) *apiv1beta1.EventList
 
-	// Params conversions
 	ListParamsToDomain(apiv1beta1.ListEventsParams) domain.ListEventsParams
-}
-
-type eventConverter struct{}
-
-// NewEventConverter creates a new EventConverter.
-func NewEventConverter() EventConverter {
-	return &eventConverter{}
-}
-
-func (c *eventConverter) ListFromDomain(l *domain.EventList) *apiv1beta1.EventList {
-	return l
-}
-
-func (c *eventConverter) ListParamsToDomain(p apiv1beta1.ListEventsParams) domain.ListEventsParams {
-	return p
 }

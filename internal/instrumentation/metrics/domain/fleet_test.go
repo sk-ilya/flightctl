@@ -17,8 +17,8 @@ import (
 
 // MockFleetStore implements store.Fleet for testing
 type MockFleetStore struct {
-	fleetList            *domain.FleetList
-	fleetListWithDevices *domain.FleetList
+	fleetList            *domain.ResourceList[domain.Fleet]
+	fleetListWithDevices *domain.ResourceList[domain.Fleet]
 	rolloutStatusCounts  []store.CountByRolloutStatusResult
 	shouldError          bool
 }
@@ -46,7 +46,7 @@ func (m *MockFleetStore) Get(ctx context.Context, orgId uuid.UUID, name string, 
 	return nil, nil
 }
 
-func (m *MockFleetStore) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams, opts ...store.ListOption) (*domain.FleetList, error) {
+func (m *MockFleetStore) List(ctx context.Context, orgId uuid.UUID, listParams store.ListParams, opts ...store.ListOption) (*domain.ResourceList[domain.Fleet], error) {
 	if m.shouldError {
 		return nil, assert.AnError
 	}
@@ -78,11 +78,11 @@ func (m *MockFleetStore) UpdateStatus(ctx context.Context, orgId uuid.UUID, flee
 	return nil, nil
 }
 
-func (m *MockFleetStore) ListRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, error) {
+func (m *MockFleetStore) ListRolloutDeviceSelection(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], error) {
 	return nil, nil
 }
 
-func (m *MockFleetStore) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.FleetList, error) {
+func (m *MockFleetStore) ListDisruptionBudgetFleets(ctx context.Context, orgId uuid.UUID) (*domain.ResourceList[domain.Fleet], error) {
 	return nil, nil
 }
 
@@ -106,7 +106,7 @@ func (m *MockFleetStore) OverwriteRepositoryRefs(ctx context.Context, orgId uuid
 	return nil
 }
 
-func (m *MockFleetStore) GetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.RepositoryList, error) {
+func (m *MockFleetStore) GetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], error) {
 	return nil, nil
 }
 

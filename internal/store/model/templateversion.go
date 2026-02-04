@@ -41,7 +41,7 @@ func (tv TemplateVersion) String() string {
 	return string(val)
 }
 
-func NewTemplateVersionFromApiResource(resource *domain.TemplateVersion) (*TemplateVersion, error) {
+func NewTemplateVersionFromDomain(resource *domain.TemplateVersion) (*TemplateVersion, error) {
 	// Shouldn't happen, but just to be safe
 	if resource == nil || resource.Metadata.Name == nil {
 		return &TemplateVersion{}, nil
@@ -77,7 +77,7 @@ func TemplateVersionAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.TemplateVersionAPIVersion)
 }
 
-func (tv *TemplateVersion) ToApiResource(opts ...APIResourceOption) (*domain.TemplateVersion, error) {
+func (tv *TemplateVersion) ToDomain(opts ...APIResourceOption) (*domain.TemplateVersion, error) {
 	// Shouldn't happen, but just to be safe
 	if tv == nil {
 		return &domain.TemplateVersion{}, nil
@@ -110,22 +110,18 @@ func (tv *TemplateVersion) ToApiResource(opts ...APIResourceOption) (*domain.Tem
 	}, nil
 }
 
-func TemplateVersionsToApiResource(tvs []TemplateVersion, cont *string, numRemaining *int64) (domain.TemplateVersionList, error) {
-	deviceList := make([]domain.TemplateVersion, len(tvs))
-	for i, device := range tvs {
-		apiResource, _ := device.ToApiResource()
-		deviceList[i] = *apiResource
+func TemplateVersionsToDomain(tvs []TemplateVersion, cont *string, numRemaining *int64) (domain.ResourceList[domain.TemplateVersion], error) {
+	templateVersionList := make([]domain.TemplateVersion, len(tvs))
+	for i, tv := range tvs {
+		apiResource, _ := tv.ToDomain()
+		templateVersionList[i] = *apiResource
 	}
-	ret := domain.TemplateVersionList{
-		ApiVersion: TemplateVersionAPIVersion(),
-		Kind:       domain.TemplateVersionListKind,
-		Items:      deviceList,
-	}
+	metadata := domain.Pagination{}
 	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
 	}
-	return ret, nil
+	return domain.NewResourceList(templateVersionList, metadata), nil
 }
 
 func (tv *TemplateVersion) GetKind() string {

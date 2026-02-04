@@ -19,7 +19,7 @@ type TemplateVersion interface {
 
 	Create(ctx context.Context, orgId uuid.UUID, templateVersion *domain.TemplateVersion, eventCallback EventCallback) (*domain.TemplateVersion, error)
 	Get(ctx context.Context, orgId uuid.UUID, fleet string, name string) (*domain.TemplateVersion, error)
-	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.TemplateVersionList, error)
+	List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.TemplateVersion], error)
 	Delete(ctx context.Context, orgId uuid.UUID, fleet string, name string, eventCallback EventCallback) (bool, error)
 
 	GetLatest(ctx context.Context, orgId uuid.UUID, fleet string) (*domain.TemplateVersion, error)
@@ -29,7 +29,7 @@ type TemplateVersion interface {
 type TemplateVersionStore struct {
 	dbHandler           *gorm.DB
 	log                 logrus.FieldLogger
-	genericStore        *GenericStore[*model.TemplateVersion, model.TemplateVersion, domain.TemplateVersion, domain.TemplateVersionList]
+	genericStore        *GenericStore[*model.TemplateVersion, model.TemplateVersion, domain.TemplateVersion, domain.ResourceList[domain.TemplateVersion]]
 	eventCallbackCaller EventCallbackCaller
 }
 
@@ -37,12 +37,12 @@ type TemplateVersionStore struct {
 var _ TemplateVersion = (*TemplateVersionStore)(nil)
 
 func NewTemplateVersion(db *gorm.DB, log logrus.FieldLogger) TemplateVersion {
-	genericStore := NewGenericStore[*model.TemplateVersion, model.TemplateVersion, domain.TemplateVersion, domain.TemplateVersionList](
+	genericStore := NewGenericStore[*model.TemplateVersion, model.TemplateVersion, domain.TemplateVersion, domain.ResourceList[domain.TemplateVersion]](
 		db,
 		log,
-		model.NewTemplateVersionFromApiResource,
-		(*model.TemplateVersion).ToApiResource,
-		model.TemplateVersionsToApiResource,
+		model.NewTemplateVersionFromDomain,
+		(*model.TemplateVersion).ToDomain,
+		model.TemplateVersionsToDomain,
 	)
 	return &TemplateVersionStore{dbHandler: db, log: log, genericStore: genericStore, eventCallbackCaller: CallEventCallback(domain.TemplateVersionKind, log)}
 }
@@ -104,11 +104,11 @@ func (s *TemplateVersionStore) Get(ctx context.Context, orgId uuid.UUID, fleet s
 	if result.Error != nil {
 		return nil, ErrorFromGormError(result.Error)
 	}
-	apiTemplateVersion, _ := templateVersion.ToApiResource()
+	apiTemplateVersion, _ := templateVersion.ToDomain()
 	return apiTemplateVersion, nil
 }
 
-func (s *TemplateVersionStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.TemplateVersionList, error) {
+func (s *TemplateVersionStore) List(ctx context.Context, orgId uuid.UUID, listParams ListParams) (*domain.ResourceList[domain.TemplateVersion], error) {
 	return s.genericStore.List(ctx, orgId, listParams)
 }
 
@@ -118,7 +118,7 @@ func (s *TemplateVersionStore) GetLatest(ctx context.Context, orgId uuid.UUID, f
 	if result.Error != nil {
 		return nil, ErrorFromGormError(result.Error)
 	}
-	apiResource, _ := templateVersion.ToApiResource()
+	apiResource, _ := templateVersion.ToDomain()
 	return apiResource, nil
 }
 

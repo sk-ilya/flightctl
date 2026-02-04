@@ -183,26 +183,26 @@ var _ = Describe("FleetStore create", func() {
 			fleets, err := storeInst.Fleet().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(fleets.Items)).To(Equal(1))
-			Expect(*fleets.Metadata.RemainingItemCount).To(Equal(int64(2)))
+			Expect(*fleets.Pagination.RemainingItemCount).To(Equal(int64(2)))
 			foundFleetNames[0] = *fleets.Items[0].Metadata.Name
 
-			cont, err := store.ParseContinueString(fleets.Metadata.Continue)
+			cont, err := store.ParseContinueString(fleets.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			fleets, err = storeInst.Fleet().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(fleets.Items)).To(Equal(1))
-			Expect(*fleets.Metadata.RemainingItemCount).To(Equal(int64(1)))
+			Expect(*fleets.Pagination.RemainingItemCount).To(Equal(int64(1)))
 			foundFleetNames[1] = *fleets.Items[0].Metadata.Name
 
-			cont, err = store.ParseContinueString(fleets.Metadata.Continue)
+			cont, err = store.ParseContinueString(fleets.Pagination.Continue)
 			Expect(err).ToNot(HaveOccurred())
 			listParams.Continue = cont
 			fleets, err = storeInst.Fleet().List(ctx, orgId, listParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(fleets.Items)).To(Equal(1))
-			Expect(fleets.Metadata.RemainingItemCount).To(BeNil())
-			Expect(fleets.Metadata.Continue).To(BeNil())
+			Expect(fleets.Pagination.RemainingItemCount).To(BeNil())
+			Expect(fleets.Pagination.Continue).To(BeNil())
 			foundFleetNames[2] = *fleets.Items[0].Metadata.Name
 
 			for i := range allFleetNames {

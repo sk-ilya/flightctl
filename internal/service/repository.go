@@ -23,7 +23,7 @@ func (h *ServiceHandler) CreateRepository(ctx context.Context, orgId uuid.UUID, 
 	return result, StoreErrorToApiStatus(err, true, domain.RepositoryKind, repository.Metadata.Name)
 }
 
-func (h *ServiceHandler) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.RepositoryList, domain.Status) {
+func (h *ServiceHandler) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.ResourceList[domain.Repository], domain.Status) {
 	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
 	if status != domain.StatusOK() {
 		return nil, status
@@ -128,7 +128,7 @@ func (h *ServiceHandler) ReplaceRepositoryStatusByError(ctx context.Context, org
 	return result, StoreErrorToApiStatus(err, false, domain.RepositoryKind, &name)
 }
 
-func (h *ServiceHandler) GetRepositoryFleetReferences(ctx context.Context, orgId uuid.UUID, name string) (*domain.FleetList, domain.Status) {
+func (h *ServiceHandler) GetRepositoryFleetReferences(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Fleet], domain.Status) {
 	result, err := h.store.Repository().GetFleetRefs(ctx, orgId, name)
 	return result, StoreErrorToApiStatus(err, false, domain.RepositoryKind, &name)
 }

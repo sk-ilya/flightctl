@@ -68,7 +68,7 @@ func (m *MockRepository) CreateOrUpdate(context.Context, uuid.UUID, *domain.Repo
 func (m *MockRepository) Get(context.Context, uuid.UUID, string) (*domain.Repository, error) {
 	return nil, nil
 }
-func (m *MockRepository) List(context.Context, uuid.UUID, store.ListParams) (*domain.RepositoryList, error) {
+func (m *MockRepository) List(context.Context, uuid.UUID, store.ListParams) (*domain.ResourceList[domain.Repository], error) {
 	return nil, nil
 }
 func (m *MockRepository) Delete(context.Context, uuid.UUID, string, store.EventCallback) error {
@@ -77,7 +77,7 @@ func (m *MockRepository) Delete(context.Context, uuid.UUID, string, store.EventC
 func (m *MockRepository) UpdateStatus(context.Context, uuid.UUID, *domain.Repository, store.EventCallback) (*domain.Repository, error) {
 	return nil, nil
 }
-func (m *MockRepository) GetFleetRefs(context.Context, uuid.UUID, string) (*domain.FleetList, error) {
+func (m *MockRepository) GetFleetRefs(context.Context, uuid.UUID, string) (*domain.ResourceList[domain.Fleet], error) {
 	return nil, nil
 }
 func (m *MockRepository) GetDeviceRefs(context.Context, uuid.UUID, string) (*domain.DeviceList, error) {

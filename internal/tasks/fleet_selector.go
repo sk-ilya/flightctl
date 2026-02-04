@@ -302,10 +302,10 @@ func (f FleetSelectorMatchingLogic) clearFleetOwnershipFromDevices(ctx context.C
 			}
 		}
 
-		if devices.Metadata.Continue == nil {
+		if devices.Pagination.Continue == nil {
 			break
 		}
-		listParams.Continue = devices.Metadata.Continue
+		listParams.Continue = devices.Pagination.Continue
 	}
 
 	// Also re-examine devices with multipleowners condition since fleet deletion
@@ -397,10 +397,10 @@ func (f FleetSelectorMatchingLogic) handleDevicesMatchingFleet(ctx context.Conte
 			}
 		}
 
-		if devices.Metadata.Continue == nil {
+		if devices.Pagination.Continue == nil {
 			break
 		}
-		listParams.Continue = devices.Metadata.Continue
+		listParams.Continue = devices.Pagination.Continue
 	}
 
 	return devicesProcessed, errors
@@ -542,10 +542,10 @@ func (f FleetSelectorMatchingLogic) fetchAllFleets(ctx context.Context) ([]domai
 		}
 
 		fleets = append(fleets, fleetBatch.Items...)
-		if fleetBatch.Metadata.Continue == nil {
+		if fleetBatch.Pagination.Continue == nil {
 			break
 		}
-		fleetListParams.Continue = fleetBatch.Metadata.Continue
+		fleetListParams.Continue = fleetBatch.Pagination.Continue
 	}
 	return fleets, nil
 }
@@ -661,10 +661,10 @@ func (f FleetSelectorMatchingLogic) handleOrphanedDevices(ctx context.Context, f
 			}
 		}
 
-		if devices.Metadata.Continue == nil {
+		if devices.Pagination.Continue == nil {
 			break
 		}
-		listParams.Continue = devices.Metadata.Continue
+		listParams.Continue = devices.Pagination.Continue
 	}
 
 	return devicesProcessed, errors
@@ -753,12 +753,12 @@ func (f FleetSelectorMatchingLogic) handleDevicesWithMultipleOwnersCondition(ctx
 		}
 
 		// Check if there are more pages
-		if devices.Metadata.Continue == nil {
+		if devices.Pagination.Continue == nil {
 			break // No more pages
 		}
 
 		// Convert the API-level continue token back to store-level format for next iteration
-		nextContinue, err := store.ParseContinueString(devices.Metadata.Continue)
+		nextContinue, err := store.ParseContinueString(devices.Pagination.Continue)
 		if err != nil {
 			f.log.Errorf("Failed to parse continue token: %v", err)
 			errors++

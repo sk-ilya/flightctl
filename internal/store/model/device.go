@@ -66,7 +66,7 @@ type DeviceType interface {
 }
 
 type DeviceTypePtr interface {
-	ToApiResource(opts ...APIResourceOption) (*domain.Device, error)
+	ToDomain(opts ...APIResourceOption) (*domain.Device, error)
 }
 
 type DeviceLabel struct {
@@ -88,7 +88,7 @@ func (d Device) String() string {
 	return string(val)
 }
 
-func NewDeviceFromApiResource(resource *domain.Device) (*Device, error) {
+func NewDeviceFromDomain(resource *domain.Device) (*Device, error) {
 	if resource == nil || resource.Metadata.Name == nil {
 		return &Device{}, nil
 	}
@@ -140,7 +140,7 @@ func DeviceAPIVersion() string {
 	return fmt.Sprintf("%s/%s", domain.APIGroup, domain.DeviceAPIVersion)
 }
 
-func (d *Device) ToApiResource(opts ...APIResourceOption) (*domain.Device, error) {
+func (d *Device) ToDomain(opts ...APIResourceOption) (*domain.Device, error) {
 	if d == nil {
 		return &domain.Device{}, nil
 	}
@@ -229,7 +229,7 @@ func (d *Device) ToApiResource(opts ...APIResourceOption) (*domain.Device, error
 	}, nil
 }
 
-func DevicesToApiResource[D DeviceType](devices []D, cont *string, numRemaining *int64) (domain.DeviceList, error) {
+func DevicesToDomain[D DeviceType](devices []D, cont *string, numRemaining *int64) (domain.DeviceList, error) {
 	deviceList := make([]domain.Device, len(devices))
 	applicationStatuses := make(map[string]int64)
 	summaryStatuses := make(map[string]int64)
@@ -239,7 +239,7 @@ func DevicesToApiResource[D DeviceType](devices []D, cont *string, numRemaining 
 		if !ok {
 			return domain.DeviceList{}, fmt.Errorf("type assertion to DeviceTypePtr failed")
 		}
-		apiResource, _ := dptr.ToApiResource()
+		apiResource, _ := dptr.ToDomain()
 		deviceList[i] = *apiResource
 		applicationStatus := string(deviceList[i].Status.ApplicationsSummary.Status)
 		applicationStatuses[applicationStatus] = applicationStatuses[applicationStatus] + 1
@@ -248,23 +248,21 @@ func DevicesToApiResource[D DeviceType](devices []D, cont *string, numRemaining 
 		updateStatus := string(deviceList[i].Status.Updated.Status)
 		updateStatuses[updateStatus] = updateStatuses[updateStatus] + 1
 	}
-	ret := domain.DeviceList{
-		ApiVersion: DeviceAPIVersion(),
-		Kind:       domain.DeviceListKind,
-		Items:      deviceList,
-		Metadata:   domain.ListMeta{},
-		Summary: &domain.DevicesSummary{
+	metadata := domain.Pagination{}
+	if cont != nil {
+		metadata.Continue = cont
+		metadata.RemainingItemCount = numRemaining
+	}
+	return domain.NewDeviceList(
+		deviceList,
+		metadata,
+		&domain.DevicesSummary{
 			ApplicationStatus: applicationStatuses,
 			SummaryStatus:     summaryStatuses,
 			UpdateStatus:      updateStatuses,
 			Total:             int64(len(devices)),
 		},
-	}
-	if cont != nil {
-		ret.Metadata.Continue = cont
-		ret.Metadata.RemainingItemCount = numRemaining
-	}
-	return ret, nil
+	), nil
 }
 
 func (d *Device) GetKind() string {
@@ -296,11 +294,11 @@ func (d *Device) GetStatusAsJson() ([]byte, error) {
 	return d.Status.MarshalJSON()
 }
 
-func (d *DeviceWithTimestamp) ToApiResource(opts ...APIResourceOption) (*domain.Device, error) {
+func (d *DeviceWithTimestamp) ToDomain(opts ...APIResourceOption) (*domain.Device, error) {
 	if d == nil {
 		return &domain.Device{}, nil
 	}
-	baseDevice, err := d.Device.ToApiResource(opts...)
+	baseDevice, err := d.Device.ToDomain(opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -429,8 +429,9 @@ func (s *DummyRepositoryStore) Get(ctx context.Context, orgId uuid.UUID, name st
 	return &result, nil
 }
 
-func (s *DummyRepositoryStore) List(ctx context.Context, orgId uuid.UUID, listParams flightctlstore.ListParams) (*domain.RepositoryList, error) {
-	return &domain.RepositoryList{}, nil
+func (s *DummyRepositoryStore) List(ctx context.Context, orgId uuid.UUID, listParams flightctlstore.ListParams) (*domain.ResourceList[domain.Repository], error) {
+	list := domain.EmptyResourceList[domain.Repository]()
+	return &list, nil
 }
 
 func (s *DummyRepositoryStore) Delete(ctx context.Context, orgId uuid.UUID, name string, eventCallback flightctlstore.EventCallback) error {
@@ -441,12 +442,14 @@ func (s *DummyRepositoryStore) UpdateStatus(ctx context.Context, orgId uuid.UUID
 	return nil, nil
 }
 
-func (s *DummyRepositoryStore) GetFleetRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.FleetList, error) {
-	return &domain.FleetList{}, nil
+func (s *DummyRepositoryStore) GetFleetRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Fleet], error) {
+	list := domain.EmptyResourceList[domain.Fleet]()
+	return &list, nil
 }
 
 func (s *DummyRepositoryStore) GetDeviceRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.DeviceList, error) {
-	return &domain.DeviceList{}, nil
+	list := domain.EmptyDeviceList(nil)
+	return &list, nil
 }
 
 func (s *DummyRepositoryStore) Count(ctx context.Context, orgId uuid.UUID, listParams flightctlstore.ListParams) (int64, error) {

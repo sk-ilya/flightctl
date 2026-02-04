@@ -279,7 +279,7 @@ var _ = Describe("VM Agent behavior", func() {
 			By(`should show an error when trying to update a device with a httpConfigProviderSpec
 			with invalid Path, and report 'Online' status`)
 			// Create the http repository.
-			_, err = model.NewRepositoryFromApiResource(&httpRepo)
+			_, err = model.NewRepositoryFromDomain(&httpRepo)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Update the device with the http invalid config.
