@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./auth_conv.gen.go
 // goverter:name AuthConverterImpl
-// goverter:skipCopySameType
 type AuthConverter interface {
 	TokenRequestToDomain(*apiv1beta1.TokenRequest) *domain.TokenRequest
 	TokenResponseFromDomain(*domain.TokenResponse) *apiv1beta1.TokenResponse

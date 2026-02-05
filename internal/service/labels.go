@@ -10,12 +10,10 @@ import (
 )
 
 // (GET /api/v1/labels)
-func (h *ServiceHandler) ListLabels(ctx context.Context, orgId uuid.UUID, params domain.ListLabelsParams) (*domain.LabelList, domain.Status) {
+func (h *ServiceHandler) ListLabels(ctx context.Context, orgId uuid.UUID, kind domain.ResourceKind, params domain.ResourceListParams) (*domain.LabelList, domain.Status) {
 	var err error
 
-	kind := params.Kind
-
-	listParams, status := prepareListParams(nil, params.LabelSelector, params.FieldSelector, params.Limit)
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}

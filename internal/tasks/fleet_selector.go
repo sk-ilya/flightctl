@@ -275,14 +275,14 @@ func (f FleetSelectorMatchingLogic) processFleetSelectorUpdate(ctx context.Conte
 func (f FleetSelectorMatchingLogic) clearFleetOwnershipFromDevices(ctx context.Context, allFleetsFetcher func() ([]domain.Fleet, error)) error {
 
 	// Get all devices that had this fleet as owner
-	listParams := domain.ListDevicesParams{
+	listParams := domain.ResourceListParams{
 		FieldSelector: lo.ToPtr(fmt.Sprintf("metadata.owner=%s", *util.SetResourceOwner(domain.FleetKind, f.event.InvolvedObject.Name))),
 		Limit:         lo.ToPtr(f.itemsPerPage),
 	}
 
 	errors := 0
 	for {
-		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, nil)
+		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, nil, false)
 		if status.Code != http.StatusOK {
 			return fmt.Errorf("failed to list devices owned by deleted fleet: %s", status.Message)
 		}
@@ -324,7 +324,7 @@ func (f FleetSelectorMatchingLogic) handleDevicesMatchingFleet(ctx context.Conte
 	f.log.Infof("Handling devices now matching fleet %s", f.event.InvolvedObject.Name)
 
 	// Get devices that match this fleet's selector
-	listParams := domain.ListDevicesParams{
+	listParams := domain.ResourceListParams{
 		LabelSelector: labelSelectorFromLabelMap(getMatchLabelsSafe(fleet)),
 		Limit:         lo.ToPtr(f.itemsPerPage),
 	}
@@ -337,7 +337,7 @@ func (f FleetSelectorMatchingLogic) handleDevicesMatchingFleet(ctx context.Conte
 			return devicesProcessed, errors
 		}
 
-		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, nil)
+		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, nil, false)
 		if status.Code != http.StatusOK {
 			f.log.Errorf("Critical system error: failed to list devices matching fleet: %s", status.Message)
 			errors++
@@ -534,9 +534,9 @@ func (f FleetSelectorMatchingLogic) updateDeviceOwner(ctx context.Context, devic
 
 func (f FleetSelectorMatchingLogic) fetchAllFleets(ctx context.Context) ([]domain.Fleet, error) {
 	var fleets []domain.Fleet
-	fleetListParams := domain.ListFleetsParams{Limit: lo.ToPtr(f.itemsPerPage)}
+	fleetListParams := domain.ResourceListParams{Limit: lo.ToPtr(f.itemsPerPage)}
 	for {
-		fleetBatch, status := f.serviceHandler.ListFleets(ctx, f.orgId, fleetListParams)
+		fleetBatch, status := f.serviceHandler.ListFleets(ctx, f.orgId, fleetListParams, false)
 		if status.Code != http.StatusOK {
 			return nil, fmt.Errorf("failed fetching fleets: %s", status.Message)
 		}
@@ -615,7 +615,7 @@ func (f FleetSelectorMatchingLogic) handleOrphanedDevices(ctx context.Context, f
 	}
 
 	// Construct selector: devices that don't match AND are owned by this fleet
-	listParams := domain.ListDevicesParams{
+	listParams := domain.ResourceListParams{
 		Limit:         lo.ToPtr(f.itemsPerPage),
 		LabelSelector: lo.ToPtr(fmt.Sprintf("(%s) != (%s)", strings.Join(keys, ","), strings.Join(values, ","))),
 		FieldSelector: lo.ToPtr(fmt.Sprintf("metadata.owner=%s", *util.SetResourceOwner(domain.FleetKind, f.event.InvolvedObject.Name))),
@@ -629,7 +629,7 @@ func (f FleetSelectorMatchingLogic) handleOrphanedDevices(ctx context.Context, f
 			return devicesProcessed, errors
 		}
 
-		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, nil)
+		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, nil, false)
 		if status.Code != http.StatusOK {
 			f.log.Errorf("Critical system error: failed to list orphaned devices: %s", status.Message)
 			errors++

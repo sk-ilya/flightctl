@@ -8,6 +8,7 @@ import (
 
 	api "github.com/flightctl/flightctl/api/core/v1beta1"
 	"github.com/flightctl/flightctl/internal/consts"
+	"github.com/flightctl/flightctl/internal/domain"
 	"github.com/flightctl/flightctl/internal/service"
 	"github.com/flightctl/flightctl/internal/store"
 	"github.com/google/uuid"
@@ -797,12 +798,12 @@ var _ = Describe("Device Application Status Events Integration Tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Test filtering by System kind using the service ListEvents API
-			params := api.ListEventsParams{
+			params := domain.ResourceListParams{
 				FieldSelector: lo.ToPtr("involvedObject.kind=System"),
 				Limit:         lo.ToPtr(int32(100)),
 			}
 
-			eventList, status := suite.Handler.ListEvents(suite.Ctx, suite.OrgID, params)
+			eventList, status := suite.Handler.ListEvents(suite.Ctx, suite.OrgID, params, nil)
 			Expect(status.Code).To(Equal(int32(200)))
 			Expect(eventList).ToNot(BeNil())
 
@@ -825,12 +826,12 @@ var _ = Describe("Device Application Status Events Integration Tests", func() {
 			Expect(systemRestoredEvent).ToNot(BeNil(), "SystemRestored event should be found when filtering by System kind")
 
 			// Test filtering by Device kind to ensure System events are excluded
-			deviceParams := api.ListEventsParams{
+			deviceParams := domain.ResourceListParams{
 				FieldSelector: lo.ToPtr("involvedObject.kind=Device"),
 				Limit:         lo.ToPtr(int32(100)),
 			}
 
-			deviceEventList, status := suite.Handler.ListEvents(suite.Ctx, suite.OrgID, deviceParams)
+			deviceEventList, status := suite.Handler.ListEvents(suite.Ctx, suite.OrgID, deviceParams, nil)
 			Expect(status.Code).To(Equal(int32(200)))
 			Expect(deviceEventList).ToNot(BeNil())
 
@@ -1136,7 +1137,7 @@ var _ = Describe("Device Application Status Events Integration Tests", func() {
 				createTestDevices(testCase.devices)
 
 				// Test counting by the specified groups
-				params := api.ListDevicesParams{}
+				params := domain.ResourceListParams{}
 				result, status := suite.Handler.CountDevicesByLabels(suite.Ctx, suite.OrgID, params, nil, testCase.groupBy)
 
 				Expect(status.Code).To(Equal(int32(200)))
@@ -1573,7 +1574,7 @@ var _ = Describe("Device LastSeen Integration Tests", func() {
 			fmt.Printf("DEBUG: oldTime = %s\n", oldTime.Format(time.RFC3339))
 			fmt.Printf("DEBUG: cutoffTime = %s\n", cutoffTime.Format(time.RFC3339))
 
-			params := api.ListDevicesParams{
+			params := domain.ResourceListParams{
 				Limit: lo.ToPtr(int32(100)),
 			}
 
@@ -1631,7 +1632,7 @@ var _ = Describe("Device LastSeen Integration Tests", func() {
 			// Test field selector: get devices with lastSeen after a specific time
 			cutoffTime := time.Now().Add(-1 * time.Hour)
 
-			params := api.ListDevicesParams{
+			params := domain.ResourceListParams{
 				Limit: lo.ToPtr(int32(100)),
 			}
 

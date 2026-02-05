@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./certificatesigningrequest_conv.gen.go
 // goverter:name CertificateSigningRequestConverterImpl
-// goverter:skipCopySameType
 type CertificateSigningRequestConverter interface {
 	ToDomain(apiv1beta1.CertificateSigningRequest) domain.CertificateSigningRequest
 	FromDomain(*domain.CertificateSigningRequest) *apiv1beta1.CertificateSigningRequest
@@ -18,5 +17,5 @@ type CertificateSigningRequestConverter interface {
 	// goverter:map Pagination Metadata
 	ListFromDomain(*domain.ResourceList[domain.CertificateSigningRequest]) *apiv1beta1.CertificateSigningRequestList
 
-	ListParamsToDomain(apiv1beta1.ListCertificateSigningRequestsParams) domain.ListCertificateSigningRequestsParams
+	ListParamsToDomain(apiv1beta1.ListCertificateSigningRequestsParams) domain.ResourceListParams
 }

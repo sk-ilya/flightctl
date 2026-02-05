@@ -31,8 +31,8 @@ func newQuerySelectorParts() *querySelectorParts {
 	return &querySelectorParts{}
 }
 
-func (q *querySelectorParts) listParams() (domain.ListDevicesParams, *selector.AnnotationSelector) {
-	var ret domain.ListDevicesParams
+func (q *querySelectorParts) listParams() (domain.ResourceListParams, *selector.AnnotationSelector) {
+	var ret domain.ResourceListParams
 	var annotationSelector *selector.AnnotationSelector
 
 	if len(q.fieldSelectorList) > 0 {
@@ -605,7 +605,7 @@ func (b *batchSelection) Devices(ctx context.Context) (*domain.DeviceList, error
 		withOwner(b.fleetName).
 		withSelectedForRollout().
 		listParams()
-	result, status := b.serviceHandler.ListDevices(ctx, b.orgId, listParams, annotationSelector)
+	result, status := b.serviceHandler.ListDevices(ctx, b.orgId, listParams, annotationSelector, false)
 	return result, service.ApiStatusToErr(status)
 }
 

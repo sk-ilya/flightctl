@@ -85,7 +85,7 @@ func (r *RepoTester) TestRepositories(ctx context.Context, orgId uuid.UUID) {
 	continueToken := (*string)(nil)
 
 	for {
-		repositories, status := r.serviceHandler.ListRepositories(ctx, orgId, domain.ListRepositoriesParams{
+		repositories, status := r.serviceHandler.ListRepositories(ctx, orgId, domain.ResourceListParams{
 			Limit:    &limit,
 			Continue: continueToken,
 		})

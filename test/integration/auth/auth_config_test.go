@@ -9,6 +9,7 @@ import (
 	"github.com/flightctl/flightctl/internal/auth/authn"
 	"github.com/flightctl/flightctl/internal/config"
 	"github.com/flightctl/flightctl/internal/consts"
+	"github.com/flightctl/flightctl/internal/domain"
 	"github.com/flightctl/flightctl/internal/identity"
 	"github.com/flightctl/flightctl/internal/service"
 	"github.com/flightctl/flightctl/internal/store"
@@ -524,7 +525,7 @@ var _ = Describe("Auth Config Integration Tests", func() {
 			Expect(foundDisabled).To(BeFalse(), "Disabled provider should NOT be in auth config")
 
 			// For authproviders list API, both should be present
-			providerList, listStatus := serviceHandler.ListAuthProviders(ctx, store.NullOrgId, api.ListAuthProvidersParams{})
+			providerList, listStatus := serviceHandler.ListAuthProviders(ctx, store.NullOrgId, domain.ResourceListParams{})
 			Expect(listStatus.Code).To(Equal(int32(200)))
 			Expect(providerList).ToNot(BeNil())
 			Expect(len(providerList.Items)).To(Equal(2), "Both enabled and disabled providers should be in list API")

@@ -46,3 +46,20 @@ func EmptyResourceList[T any]() ResourceList[T] {
 		Pagination: Pagination{},
 	}
 }
+
+// ResourceListParams contains common list query parameters for resources.
+// This is a domain type that is independent of API versions.
+type ResourceListParams struct {
+	Continue      *string
+	LabelSelector *string
+	FieldSelector *string
+	Limit         *int32
+}
+
+// SortOrder represents the sort order for list queries.
+type SortOrder string
+
+const (
+	SortAsc  SortOrder = "asc"
+	SortDesc SortOrder = "desc"
+)

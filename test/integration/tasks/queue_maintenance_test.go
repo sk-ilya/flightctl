@@ -253,8 +253,8 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 					[]byte(checkpointTime), api.Status{Code: 200})
 
 				// Setup expectations for ListEvents calls
-				mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.ResourceList[domain.Event], domain.Status) {
+				mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, order *domain.SortOrder) (*domain.ResourceList[domain.Event], domain.Status) {
 						// Use the orgId parameter directly
 						if orgId == testOrg1ID {
 							return createEventsForOrg(testOrg1Events, params.FieldSelector), domain.Status{Code: 200}
@@ -323,7 +323,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 				mockService.EXPECT().ListOrganizations(gomock.Any(), gomock.Any()).Return(orgs, api.Status{Code: 200}).AnyTimes()
 
 				// Mock ListEvents for the organization (returns empty list)
-				mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+				mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 					&domain.ResourceList[domain.Event]{Items: []domain.Event{}}, domain.Status{Code: 200}).AnyTimes()
 
 				// The queue maintenance will try to get checkpoint during recovery process
@@ -355,7 +355,7 @@ var _ = Describe("Queue Maintenance Integration Tests", func() {
 				[]byte(checkpointTime.Format(time.RFC3339Nano)), api.Status{Code: 200})
 
 			// Setup ListEvents expectation for recovery
-			mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+			mockService.EXPECT().ListEvents(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				&domain.ResourceList[domain.Event]{Items: []domain.Event{createTestEvent("recent-event", time.Now().Add(-15*time.Minute))}},
 				domain.Status{Code: 200})
 

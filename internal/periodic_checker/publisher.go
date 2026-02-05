@@ -60,7 +60,7 @@ func NewTaskHeap() *TaskHeap {
 }
 
 type OrganizationService interface {
-	ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.ResourceList[domain.Organization], domain.Status)
+	ListOrganizations(ctx context.Context, params domain.ResourceListParams) (*domain.ResourceList[domain.Organization], domain.Status)
 }
 
 type TaskChannelManager interface {
@@ -310,7 +310,7 @@ func (p *PeriodicTaskPublisher) organizationSyncLoop(ctx context.Context) {
 func (p *PeriodicTaskPublisher) syncOrganizations(ctx context.Context) {
 	p.log.Info("Syncing organizations")
 
-	orgList, status := p.orgService.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	orgList, status := p.orgService.ListOrganizations(ctx, domain.ResourceListParams{})
 	if status.Code < 200 || status.Code >= 300 {
 		p.log.Errorf("Failed to list organizations: %v", status)
 		return

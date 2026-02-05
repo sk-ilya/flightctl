@@ -25,8 +25,13 @@ func (c *ResourceSyncConverterImpl) ListFromDomain(source *domain.ResourceList[v
 	}
 	return pV1beta1ResourceSyncList
 }
-func (c *ResourceSyncConverterImpl) ListParamsToDomain(source v1beta1.ListResourceSyncsParams) v1beta1.ListResourceSyncsParams {
-	return source
+func (c *ResourceSyncConverterImpl) ListParamsToDomain(source v1beta1.ListResourceSyncsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *ResourceSyncConverterImpl) ToDomain(source v1beta1.ResourceSync) v1beta1.ResourceSync {
 	return source

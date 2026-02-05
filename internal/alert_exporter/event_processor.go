@@ -45,7 +45,7 @@ func (e *EventProcessor) ProcessLatestEvents(ctx context.Context, oldCheckpoint 
 	})
 
 	// Get all organizations
-	orgs, status := e.handler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	orgs, status := e.handler.ListOrganizations(ctx, domain.ResourceListParams{})
 	if status.Code != http.StatusOK {
 		logger.WithFields(logrus.Fields{
 			"status_code": status.Code,
@@ -147,10 +147,11 @@ func (e *EventProcessor) ProcessLatestEvents(ctx context.Context, oldCheckpoint 
 // processOrganizationEvents processes events for a specific organization
 func (e *EventProcessor) processOrganizationEvents(ctx context.Context, orgID uuid.UUID, timestamp string, checkpointCtx *CheckpointContext, logger *logrus.Entry) (int, int, int, error) {
 	params := getListEventsParams(timestamp)
+	order := domain.SortAsc // Oldest to newest
 	logger.WithFields(logrus.Fields{
 		"newer_than": timestamp,
 		"limit":      *params.Limit,
-		"order":      *params.Order,
+		"order":      order,
 	}).Debug("Starting event processing for organization")
 
 	totalEvents := 0
@@ -162,7 +163,7 @@ func (e *EventProcessor) processOrganizationEvents(ctx context.Context, orgID uu
 		pageLogger := logger.WithField("page_number", totalPages)
 
 		// List the events since the last checkpoint for this organization
-		events, status := e.handler.ListEvents(ctx, orgID, params)
+		events, status := e.handler.ListEvents(ctx, orgID, params, &order)
 		if status.Code != http.StatusOK {
 			pageLogger.WithFields(logrus.Fields{
 				"status_code": status.Code,
@@ -227,7 +228,7 @@ func (e *EventProcessor) countTotalAlerts(alerts map[AlertKey]map[string]*AlertI
 	return total
 }
 
-func getListEventsParams(newerThan string) domain.ListEventsParams {
+func getListEventsParams(newerThan string) domain.ResourceListParams {
 	eventsOfInterest := []domain.EventReason{
 		domain.EventReasonDeviceApplicationDegraded,
 		domain.EventReasonDeviceApplicationError,
@@ -258,8 +259,7 @@ func getListEventsParams(newerThan string) domain.ListEventsParams {
 			fmt.Sprintf("metadata.creationTimestamp>=%s", newerThan))
 	}
 
-	return domain.ListEventsParams{
-		Order:         lo.ToPtr(domain.Asc), // Oldest to newest
+	return domain.ResourceListParams{
 		FieldSelector: lo.ToPtr(strings.Join(fieldSelectors, ",")),
 		Limit:         lo.ToPtr(int32(1000)),
 	}

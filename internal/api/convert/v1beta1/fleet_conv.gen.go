@@ -28,8 +28,13 @@ func (c *FleetConverterImpl) ListFromDomain(source *domain.ResourceList[v1beta1.
 	}
 	return pV1beta1FleetList
 }
-func (c *FleetConverterImpl) ListParamsToDomain(source v1beta1.ListFleetsParams) v1beta1.ListFleetsParams {
-	return source
+func (c *FleetConverterImpl) ListParamsToDomain(source v1beta1.ListFleetsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *FleetConverterImpl) ToDomain(source v1beta1.Fleet) v1beta1.Fleet {
 	return source

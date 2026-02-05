@@ -25,8 +25,13 @@ func (c *TemplateVersionConverterImpl) ListFromDomain(source *domain.ResourceLis
 	}
 	return pV1beta1TemplateVersionList
 }
-func (c *TemplateVersionConverterImpl) ListParamsToDomain(source v1beta1.ListTemplateVersionsParams) v1beta1.ListTemplateVersionsParams {
-	return source
+func (c *TemplateVersionConverterImpl) ListParamsToDomain(source v1beta1.ListTemplateVersionsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *TemplateVersionConverterImpl) domainPaginationToV1beta1ListMeta(source domain.Pagination) v1beta1.ListMeta {
 	var v1beta1ListMeta v1beta1.ListMeta

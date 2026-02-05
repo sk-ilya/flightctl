@@ -39,7 +39,7 @@ func (t *DeviceDisconnected) Poll(ctx context.Context, orgID uuid.UUID) {
 	cutoffTime := time.Now().UTC().Add(-domain.DeviceDisconnectedTimeout)
 
 	// List devices that match the disconnection criteria with pagination
-	listParams := domain.ListDevicesParams{
+	listParams := domain.ResourceListParams{
 		Limit: lo.ToPtr(int32(ItemsPerPage)),
 	}
 

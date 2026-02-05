@@ -6,6 +6,7 @@ import (
 
 	apiv1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
 	"github.com/flightctl/flightctl/internal/transport"
+	"github.com/samber/lo"
 )
 
 // (POST /api/v1/devices)
@@ -25,7 +26,8 @@ func (h *TransportHandler) CreateDevice(w http.ResponseWriter, r *http.Request) 
 // (GET /api/v1/devices)
 func (h *TransportHandler) ListDevices(w http.ResponseWriter, r *http.Request, params apiv1beta1.ListDevicesParams) {
 	domainParams := h.converter.Device().ListParamsToDomain(params)
-	body, status := h.serviceHandler.ListDevices(r.Context(), transport.OrgIDFromContext(r.Context()), domainParams, nil)
+	summaryOnly := lo.FromPtrOr(params.SummaryOnly, false)
+	body, status := h.serviceHandler.ListDevices(r.Context(), transport.OrgIDFromContext(r.Context()), domainParams, nil, summaryOnly)
 	apiResult := h.converter.Device().ListFromDomain(body)
 	transport.SetResponse(w, apiResult, status)
 }

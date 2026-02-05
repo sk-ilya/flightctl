@@ -305,8 +305,8 @@ func (h *ServiceHandler) CreateEnrollmentRequest(ctx context.Context, orgId uuid
 	return result, StoreErrorToApiStatus(err, true, domain.EnrollmentRequestKind, er.Metadata.Name)
 }
 
-func (h *ServiceHandler) ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ListEnrollmentRequestsParams) (*domain.ResourceList[domain.EnrollmentRequest], domain.Status) {
-	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
+func (h *ServiceHandler) ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.ResourceList[domain.EnrollmentRequest], domain.Status) {
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}

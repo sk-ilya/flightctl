@@ -8,12 +8,15 @@ import (
 // goverter:converter
 // goverter:output:file ./organization_conv.gen.go
 // goverter:name OrganizationConverterImpl
-// goverter:skipCopySameType
 type OrganizationConverter interface {
 	// goverter:map . ApiVersion | APIVersion
 	// goverter:map . Kind | OrganizationListKind
 	// goverter:map Pagination Metadata
 	ListFromDomain(*domain.ResourceList[domain.Organization]) *apiv1beta1.OrganizationList
 
-	ListParamsToDomain(apiv1beta1.ListOrganizationsParams) domain.ListOrganizationsParams
+	// ListOrganizationsParams only has FieldSelector
+	// goverter:ignore Continue
+	// goverter:ignore LabelSelector
+	// goverter:ignore Limit
+	ListParamsToDomain(apiv1beta1.ListOrganizationsParams) domain.ResourceListParams
 }

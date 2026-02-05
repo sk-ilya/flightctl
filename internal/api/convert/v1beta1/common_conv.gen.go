@@ -3,15 +3,22 @@
 
 package v1beta1
 
-import v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
+import (
+	v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
+	domain "github.com/flightctl/flightctl/internal/domain"
+)
 
 type CommonConverterImpl struct{}
 
 func (c *CommonConverterImpl) LabelListFromDomain(source *[]string) *[]string {
 	return source
 }
-func (c *CommonConverterImpl) ListLabelsParamsToDomain(source v1beta1.ListLabelsParams) v1beta1.ListLabelsParams {
-	return source
+func (c *CommonConverterImpl) ListLabelsParamsToDomain(source v1beta1.ListLabelsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *CommonConverterImpl) PatchRequestToDomain(source []struct {
 	Op    v1beta1.PatchRequestOp `json:"op"`

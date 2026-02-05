@@ -58,7 +58,7 @@ func TestListOrganizations_EmptyResult(t *testing.T) {
 	setupMockStoreWithOrganizations(mockStore, []*model.Organization{})
 	ctx := context.WithValue(context.Background(), consts.InternalRequestCtxKey, true)
 
-	result, status := handler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	result, status := handler.ListOrganizations(ctx, domain.ResourceListParams{})
 
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
@@ -75,7 +75,7 @@ func TestListOrganizations_SingleOrganization(t *testing.T) {
 
 	expectedOrg := createExpectedAPIOrganization(orgID, "Default", "default-external-id")
 
-	result, status := handler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	result, status := handler.ListOrganizations(ctx, domain.ResourceListParams{})
 
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
@@ -100,7 +100,7 @@ func TestListOrganizations_MultipleOrganizations(t *testing.T) {
 	expectedOrg1 := createExpectedAPIOrganization(orgID1, "Organization One", "external-id-1")
 	expectedOrg2 := createExpectedAPIOrganization(orgID2, "Organization Two", "external-id-2")
 
-	result, status := handler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	result, status := handler.ListOrganizations(ctx, domain.ResourceListParams{})
 
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
@@ -117,7 +117,7 @@ func TestListOrganizations_StoreError(t *testing.T) {
 	setupMockStoreWithError(mockStore, testError)
 	ctx := context.WithValue(context.Background(), consts.InternalRequestCtxKey, true)
 
-	result, status := handler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	result, status := handler.ListOrganizations(ctx, domain.ResourceListParams{})
 
 	require.Nil(t, result)
 	require.NotEqual(t, domain.StatusOK(), status)
@@ -129,7 +129,7 @@ func TestListOrganizations_ResourceNotFoundError(t *testing.T) {
 	setupMockStoreWithError(mockStore, flterrors.ErrResourceNotFound)
 	ctx := context.WithValue(context.Background(), consts.InternalRequestCtxKey, true)
 
-	result, status := handler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	result, status := handler.ListOrganizations(ctx, domain.ResourceListParams{})
 
 	require.Nil(t, result)
 	require.Equal(t, int32(404), status.Code)
@@ -162,7 +162,7 @@ func TestListOrganizations_WithAuthFiltering(t *testing.T) {
 	ctx := context.WithValue(context.Background(), consts.MappedIdentityCtxKey, mappedIdentity)
 
 	// Expect both authorized orgs (U2 and U3) to be returned
-	result, status := handler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	result, status := handler.ListOrganizations(ctx, domain.ResourceListParams{})
 	require.Equal(t, domain.StatusOK(), status)
 	require.NotNil(t, result)
 	require.Len(t, result.Items, 2)

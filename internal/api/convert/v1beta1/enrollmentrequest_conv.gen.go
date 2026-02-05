@@ -37,8 +37,13 @@ func (c *EnrollmentRequestConverterImpl) ListFromDomain(source *domain.ResourceL
 	}
 	return pV1beta1EnrollmentRequestList
 }
-func (c *EnrollmentRequestConverterImpl) ListParamsToDomain(source v1beta1.ListEnrollmentRequestsParams) v1beta1.ListEnrollmentRequestsParams {
-	return source
+func (c *EnrollmentRequestConverterImpl) ListParamsToDomain(source v1beta1.ListEnrollmentRequestsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *EnrollmentRequestConverterImpl) ToDomain(source v1beta1.EnrollmentRequest) v1beta1.EnrollmentRequest {
 	return source

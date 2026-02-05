@@ -271,7 +271,7 @@ func (t *QueueMaintenanceTask) republishEventsSince(ctx context.Context, since t
 	log.WithField("since", since.Format(time.RFC3339Nano)).Info("Starting event republishing")
 
 	// First, get all organizations
-	orgList, status := t.serviceHandler.ListOrganizations(ctx, domain.ListOrganizationsParams{})
+	orgList, status := t.serviceHandler.ListOrganizations(ctx, domain.ResourceListParams{})
 	if status.Code >= 400 {
 		return fmt.Errorf("failed to list organizations: %s", status.Message)
 	}
@@ -295,11 +295,11 @@ func (t *QueueMaintenanceTask) republishEventsSince(ctx context.Context, since t
 		fieldSelector := fmt.Sprintf("metadata.creationTimestamp>=%s", since.Format(time.RFC3339Nano))
 
 		// Create list parameters with field selector and ascending order (oldest first)
-		params := domain.ListEventsParams{
+		params := domain.ResourceListParams{
 			FieldSelector: &fieldSelector,
-			Order:         lo.ToPtr(domain.Asc),  // Process oldest events first
 			Limit:         lo.ToPtr(int32(1000)), // Process in batches of 1000
 		}
+		order := domain.SortAsc // Process oldest events first
 
 		var orgEventCount int
 		var continueToken *string
@@ -311,7 +311,7 @@ func (t *QueueMaintenanceTask) republishEventsSince(ctx context.Context, since t
 			}
 
 			// List events from database for this organization
-			eventList, status := t.serviceHandler.ListEvents(ctx, orgID, params)
+			eventList, status := t.serviceHandler.ListEvents(ctx, orgID, params, &order)
 			if status.Code >= 400 {
 				orgLog.WithError(fmt.Errorf("status: %s", status.Message)).Warn("Failed to list events for organization, continuing with next")
 				break

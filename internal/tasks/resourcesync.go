@@ -52,7 +52,7 @@ func (r *ResourceSync) Poll(ctx context.Context, orgId uuid.UUID) {
 	continueToken := (*string)(nil)
 
 	for {
-		resourcesyncs, status := r.serviceHandler.ListResourceSyncs(ctx, orgId, domain.ListResourceSyncsParams{
+		resourcesyncs, status := r.serviceHandler.ListResourceSyncs(ctx, orgId, domain.ResourceListParams{
 			Limit:    &limit,
 			Continue: continueToken,
 		})
@@ -176,14 +176,14 @@ func (r *ResourceSync) SyncFleets(ctx context.Context, log logrus.FieldLogger, o
 
 	fleetsPreOwned := make([]domain.Fleet, 0)
 
-	listParams := domain.ListFleetsParams{
+	listParams := domain.ResourceListParams{
 		Limit:         lo.ToPtr(int32(100)),
 		FieldSelector: lo.ToPtr(fmt.Sprintf("metadata.owner=%s", *owner)),
 	}
 	for {
 		var listRes *domain.ResourceList[domain.Fleet]
 		var status domain.Status
-		listRes, status = r.serviceHandler.ListFleets(ctx, orgId, listParams)
+		listRes, status = r.serviceHandler.ListFleets(ctx, orgId, listParams, false)
 		if status.Code != http.StatusOK {
 			err = fmt.Errorf("resource %s: failed to list owned fleets. error: %s", resourceName, status.Message)
 			log.Errorf("%v", err)

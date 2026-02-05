@@ -3,7 +3,10 @@
 
 package v1beta1
 
-import v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
+import (
+	v1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
+	domain "github.com/flightctl/flightctl/internal/domain"
+)
 
 type AuthProviderConverterImpl struct{}
 
@@ -13,8 +16,13 @@ func (c *AuthProviderConverterImpl) FromDomain(source *v1beta1.AuthProvider) *v1
 func (c *AuthProviderConverterImpl) ListFromDomain(source *v1beta1.AuthProviderList) *v1beta1.AuthProviderList {
 	return source
 }
-func (c *AuthProviderConverterImpl) ListParamsToDomain(source v1beta1.ListAuthProvidersParams) v1beta1.ListAuthProvidersParams {
-	return source
+func (c *AuthProviderConverterImpl) ListParamsToDomain(source v1beta1.ListAuthProvidersParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *AuthProviderConverterImpl) ToDomain(source v1beta1.AuthProvider) v1beta1.AuthProvider {
 	return source

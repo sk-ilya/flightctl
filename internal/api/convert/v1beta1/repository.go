@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./repository_conv.gen.go
 // goverter:name RepositoryConverterImpl
-// goverter:skipCopySameType
 type RepositoryConverter interface {
 	ToDomain(apiv1beta1.Repository) domain.Repository
 	FromDomain(*domain.Repository) *apiv1beta1.Repository
@@ -18,5 +17,5 @@ type RepositoryConverter interface {
 	// goverter:map Pagination Metadata
 	ListFromDomain(*domain.ResourceList[domain.Repository]) *apiv1beta1.RepositoryList
 
-	ListParamsToDomain(apiv1beta1.ListRepositoriesParams) domain.ListRepositoriesParams
+	ListParamsToDomain(apiv1beta1.ListRepositoriesParams) domain.ResourceListParams
 }

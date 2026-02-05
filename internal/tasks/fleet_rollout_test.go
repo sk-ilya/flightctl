@@ -253,7 +253,7 @@ func TestFleetRolloutsLogic_FullDelayDeviceRenderPropagation(t *testing.T) {
 				domain.Pagination{},
 				nil,
 			)
-			mockService.EXPECT().ListDevices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&deviceList, domain.Status{Code: http.StatusOK})
+			mockService.EXPECT().ListDevices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&deviceList, domain.Status{Code: http.StatusOK})
 
 			// Mock ReplaceDevice to capture the delayDeviceRender value from context
 			// This will be called during the device update process, allowing us to verify propagation

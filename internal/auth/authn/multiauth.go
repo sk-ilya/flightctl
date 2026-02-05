@@ -13,6 +13,7 @@ import (
 
 	api "github.com/flightctl/flightctl/api/core/v1beta1"
 	"github.com/flightctl/flightctl/internal/auth/common"
+	"github.com/flightctl/flightctl/internal/domain"
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/samber/lo"
@@ -40,10 +41,10 @@ const (
 
 // AuthProviderService interface for auth provider operations
 type AuthProviderService interface {
-	ListAuthProviders(ctx context.Context, orgId uuid.UUID, params api.ListAuthProvidersParams) (*api.AuthProviderList, api.Status)
-	ListAllAuthProviders(ctx context.Context, params api.ListAuthProvidersParams) (*api.AuthProviderList, api.Status)
-	GetAuthProvider(ctx context.Context, orgId uuid.UUID, name string) (*api.AuthProvider, api.Status)
-	GetAuthProviderByIssuerAndClientId(ctx context.Context, orgId uuid.UUID, issuer string, clientId string) (*api.AuthProvider, api.Status)
+	ListAuthProviders(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.AuthProviderList, domain.Status)
+	ListAllAuthProviders(ctx context.Context, params domain.ResourceListParams) (*domain.AuthProviderList, domain.Status)
+	GetAuthProvider(ctx context.Context, orgId uuid.UUID, name string) (*domain.AuthProvider, domain.Status)
+	GetAuthProviderByIssuerAndClientId(ctx context.Context, orgId uuid.UUID, issuer string, clientId string) (*domain.AuthProvider, domain.Status)
 }
 
 // AuthProviderCacheKey is a composite key for caching auth providers
@@ -203,12 +204,13 @@ func (m *MultiAuth) periodicLoader(ctx context.Context) {
 func (m *MultiAuth) LoadAllAuthProviders(ctx context.Context) error {
 
 	// List all auth providers from database without org filtering
-	providerList, status := m.authProviderService.ListAllAuthProviders(ctx, api.ListAuthProvidersParams{})
+	providerList, status := m.authProviderService.ListAllAuthProviders(ctx, domain.ResourceListParams{})
 	if status.Code != http.StatusOK {
 		return fmt.Errorf("failed to list auth providers: %v", status)
 	}
 
 	// Build map of provider keys from DB for tracking
+	// domain.AuthProvider is an alias for api.AuthProvider, so we can use either type
 	dbProviderKeys := make(map[AuthProviderCacheKey]*api.AuthProvider)
 	if providerList != nil && len(providerList.Items) > 0 {
 		for i := range providerList.Items {
@@ -315,6 +317,7 @@ func (m *MultiAuth) LoadAllAuthProviders(ctx context.Context) error {
 }
 
 // getProviderKey extracts the cache key from a provider without creating middleware
+// domain.AuthProvider is an alias for api.AuthProvider
 func (m *MultiAuth) getProviderKey(provider *api.AuthProvider) (AuthProviderCacheKey, error) {
 	discriminator, err := provider.Spec.Discriminator()
 	if err != nil {
@@ -346,6 +349,7 @@ func (m *MultiAuth) getProviderKey(provider *api.AuthProvider) (AuthProviderCach
 }
 
 // hasProviderChanged checks if a provider's configuration has changed
+// domain.AuthProvider is an alias for api.AuthProvider
 //
 //nolint:gocyclo // Function complexity is acceptable for provider comparison
 func (m *MultiAuth) hasProviderChanged(existingMiddleware common.AuthNMiddleware, newProvider *api.AuthProvider, providerName string) (bool, error) {

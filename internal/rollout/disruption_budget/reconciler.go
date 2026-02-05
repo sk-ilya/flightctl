@@ -87,7 +87,7 @@ func collectDeviceBudgetCounts(counts []map[string]any, groupBy []string) ([]*gr
 func (r *reconciler) getFleetCounts(ctx context.Context, orgId uuid.UUID, fleet *domain.Fleet) ([]*groupCounts, error) {
 	groupBy := lo.FromPtr(fleet.Spec.RolloutPolicy.DisruptionBudget.GroupBy)
 
-	listParams := domain.ListDevicesParams{
+	listParams := domain.ResourceListParams{
 		FieldSelector: lo.ToPtr(fmt.Sprintf("metadata.owner=%s", util.ResourceOwner(domain.FleetKind, lo.FromPtr(fleet.Metadata.Name)))),
 	}
 	counts, status := r.serviceHandler.CountDevicesByLabels(ctx, orgId, listParams, nil, groupBy)
@@ -123,7 +123,7 @@ func (r *reconciler) reconcileSelectionDevices(ctx context.Context, orgId uuid.U
 			Values:   lo.ToPtr([]string{templateVersionName}),
 		}.String(),
 	}, ","))
-	listParams := domain.ListDevicesParams{
+	listParams := domain.ResourceListParams{
 		FieldSelector: lo.ToPtr(fmt.Sprintf("metadata.owner=%s", util.ResourceOwner(domain.FleetKind, lo.FromPtr(fleet.Metadata.Name)))),
 	}
 	if len(key) > 0 {
@@ -152,7 +152,7 @@ func (r *reconciler) reconcileSelectionDevices(ctx context.Context, orgId uuid.U
 	remaining := lo.Ternary(numToRender > 0, numToRender, math.MaxInt)
 	for {
 		listParams.Limit = lo.ToPtr(int32(math.Min(float64(remaining), float64(maxItemsToRender))))
-		devices, status := r.serviceHandler.ListDevices(ctx, orgId, listParams, annotationSelector)
+		devices, status := r.serviceHandler.ListDevices(ctx, orgId, listParams, annotationSelector, false)
 		if status.Code != http.StatusOK {
 			return service.ApiStatusToErr(status)
 		}

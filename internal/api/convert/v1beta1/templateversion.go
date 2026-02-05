@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./templateversion_conv.gen.go
 // goverter:name TemplateVersionConverterImpl
-// goverter:skipCopySameType
 type TemplateVersionConverter interface {
 	FromDomain(*domain.TemplateVersion) *apiv1beta1.TemplateVersion
 
@@ -17,5 +16,5 @@ type TemplateVersionConverter interface {
 	// goverter:map Pagination Metadata
 	ListFromDomain(*domain.ResourceList[domain.TemplateVersion]) *apiv1beta1.TemplateVersionList
 
-	ListParamsToDomain(apiv1beta1.ListTemplateVersionsParams) domain.ListTemplateVersionsParams
+	ListParamsToDomain(apiv1beta1.ListTemplateVersionsParams) domain.ResourceListParams
 }

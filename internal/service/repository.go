@@ -23,8 +23,8 @@ func (h *ServiceHandler) CreateRepository(ctx context.Context, orgId uuid.UUID, 
 	return result, StoreErrorToApiStatus(err, true, domain.RepositoryKind, repository.Metadata.Name)
 }
 
-func (h *ServiceHandler) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.ResourceList[domain.Repository], domain.Status) {
-	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
+func (h *ServiceHandler) ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.ResourceList[domain.Repository], domain.Status) {
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}

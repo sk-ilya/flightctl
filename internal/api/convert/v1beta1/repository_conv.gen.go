@@ -25,8 +25,13 @@ func (c *RepositoryConverterImpl) ListFromDomain(source *domain.ResourceList[v1b
 	}
 	return pV1beta1RepositoryList
 }
-func (c *RepositoryConverterImpl) ListParamsToDomain(source v1beta1.ListRepositoriesParams) v1beta1.ListRepositoriesParams {
-	return source
+func (c *RepositoryConverterImpl) ListParamsToDomain(source v1beta1.ListRepositoriesParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *RepositoryConverterImpl) ToDomain(source v1beta1.Repository) v1beta1.Repository {
 	return source

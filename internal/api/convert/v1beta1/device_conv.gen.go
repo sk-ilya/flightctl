@@ -35,8 +35,13 @@ func (c *DeviceConverterImpl) ListFromDomain(source *domain.DeviceList) *v1beta1
 	}
 	return pV1beta1DeviceList
 }
-func (c *DeviceConverterImpl) ListParamsToDomain(source v1beta1.ListDevicesParams) v1beta1.ListDevicesParams {
-	return source
+func (c *DeviceConverterImpl) ListParamsToDomain(source v1beta1.ListDevicesParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *DeviceConverterImpl) ResumeRequestToDomain(source v1beta1.DeviceResumeRequest) v1beta1.DeviceResumeRequest {
 	return source

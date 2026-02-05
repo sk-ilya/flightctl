@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./fleet_conv.gen.go
 // goverter:name FleetConverterImpl
-// goverter:skipCopySameType
 type FleetConverter interface {
 	ToDomain(apiv1beta1.Fleet) domain.Fleet
 	FromDomain(*domain.Fleet) *apiv1beta1.Fleet
@@ -18,6 +17,9 @@ type FleetConverter interface {
 	// goverter:map Pagination Metadata
 	ListFromDomain(*domain.ResourceList[domain.Fleet]) *apiv1beta1.FleetList
 
-	ListParamsToDomain(apiv1beta1.ListFleetsParams) domain.ListFleetsParams
 	GetParamsToDomain(apiv1beta1.GetFleetParams) domain.GetFleetParams
+
+	// ListParamsToDomain converts API list params to domain ResourceListParams
+	// AddDevicesSummary is extracted in the transport layer (source field, no target equivalent)
+	ListParamsToDomain(apiv1beta1.ListFleetsParams) domain.ResourceListParams
 }

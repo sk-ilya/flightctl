@@ -22,8 +22,12 @@ func (c *EventConverterImpl) ListFromDomain(source *domain.ResourceList[v1beta1.
 	}
 	return pV1beta1EventList
 }
-func (c *EventConverterImpl) ListParamsToDomain(source v1beta1.ListEventsParams) v1beta1.ListEventsParams {
-	return source
+func (c *EventConverterImpl) ListParamsToDomain(source v1beta1.ListEventsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *EventConverterImpl) domainPaginationToV1beta1ListMeta(source domain.Pagination) v1beta1.ListMeta {
 	var v1beta1ListMeta v1beta1.ListMeta

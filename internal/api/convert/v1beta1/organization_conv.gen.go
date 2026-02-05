@@ -22,8 +22,10 @@ func (c *OrganizationConverterImpl) ListFromDomain(source *domain.ResourceList[v
 	}
 	return pV1beta1OrganizationList
 }
-func (c *OrganizationConverterImpl) ListParamsToDomain(source v1beta1.ListOrganizationsParams) v1beta1.ListOrganizationsParams {
-	return source
+func (c *OrganizationConverterImpl) ListParamsToDomain(source v1beta1.ListOrganizationsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	return domainResourceListParams
 }
 func (c *OrganizationConverterImpl) domainPaginationToV1beta1ListMeta(source domain.Pagination) v1beta1.ListMeta {
 	var v1beta1ListMeta v1beta1.ListMeta

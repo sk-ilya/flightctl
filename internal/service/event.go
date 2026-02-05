@@ -15,8 +15,8 @@ func (h *ServiceHandler) CreateEvent(ctx context.Context, orgId uuid.UUID, event
 	h.eventHandler.CreateEvent(ctx, orgId, event)
 }
 
-func (h *ServiceHandler) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.ResourceList[domain.Event], domain.Status) {
-	listParams, status := prepareListParams(params.Continue, nil, params.FieldSelector, params.Limit)
+func (h *ServiceHandler) ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, order *domain.SortOrder) (*domain.ResourceList[domain.Event], domain.Status) {
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}
@@ -24,8 +24,8 @@ func (h *ServiceHandler) ListEvents(ctx context.Context, orgId uuid.UUID, params
 	// default is to sort created_at with desc
 	listParams.SortColumns = []store.SortColumn{store.SortByCreatedAt, store.SortByName}
 	listParams.SortOrder = lo.ToPtr(store.SortDesc)
-	if params.Order != nil {
-		listParams.SortOrder = lo.ToPtr(map[domain.ListEventsParamsOrder]store.SortOrder{domain.Asc: store.SortAsc, domain.Desc: store.SortDesc}[*params.Order])
+	if order != nil {
+		listParams.SortOrder = lo.ToPtr(map[domain.SortOrder]store.SortOrder{domain.SortAsc: store.SortAsc, domain.SortDesc: store.SortDesc}[*order])
 	}
 
 	result, err := h.store.Event().List(ctx, orgId, *listParams)

@@ -25,8 +25,13 @@ func (c *CertificateSigningRequestConverterImpl) ListFromDomain(source *domain.R
 	}
 	return pV1beta1CertificateSigningRequestList
 }
-func (c *CertificateSigningRequestConverterImpl) ListParamsToDomain(source v1beta1.ListCertificateSigningRequestsParams) v1beta1.ListCertificateSigningRequestsParams {
-	return source
+func (c *CertificateSigningRequestConverterImpl) ListParamsToDomain(source v1beta1.ListCertificateSigningRequestsParams) domain.ResourceListParams {
+	var domainResourceListParams domain.ResourceListParams
+	domainResourceListParams.Continue = source.Continue
+	domainResourceListParams.LabelSelector = source.LabelSelector
+	domainResourceListParams.FieldSelector = source.FieldSelector
+	domainResourceListParams.Limit = source.Limit
+	return domainResourceListParams
 }
 func (c *CertificateSigningRequestConverterImpl) ToDomain(source v1beta1.CertificateSigningRequest) v1beta1.CertificateSigningRequest {
 	return source

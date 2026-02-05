@@ -123,8 +123,8 @@ func (h *ServiceHandler) CreateDevice(ctx context.Context, orgId uuid.UUID, devi
 	return result, StoreErrorToApiStatus(err, true, domain.DeviceKind, device.Metadata.Name)
 }
 
-func convertDeviceListParams(params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector) (*store.ListParams, domain.Status) {
-	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
+func convertDeviceListParams(params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector) (*store.ListParams, domain.Status) {
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}
@@ -132,14 +132,14 @@ func convertDeviceListParams(params domain.ListDevicesParams, annotationSelector
 	return listParams, domain.StatusOK()
 }
 
-func (h *ServiceHandler) ListDevices(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector) (*domain.DeviceList, domain.Status) {
+func (h *ServiceHandler) ListDevices(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector, summaryOnly bool) (*domain.DeviceList, domain.Status) {
 	storeParams, status := convertDeviceListParams(params, annotationSelector)
 	if status.Code != http.StatusOK {
 		return nil, status
 	}
 
 	// Check if SummaryOnly is true
-	if params.SummaryOnly != nil && *params.SummaryOnly {
+	if summaryOnly {
 		// Check for unsupported parameters
 		if params.Limit != nil || params.Continue != nil {
 			return nil, domain.StatusBadRequest("parameters such as 'limit', and 'continue' are not supported when 'summaryOnly' is true")
@@ -179,16 +179,10 @@ func (h *ServiceHandler) ListDevices(ctx context.Context, orgId uuid.UUID, param
 	}
 }
 
-func (h *ServiceHandler) ListDisconnectedDevices(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, cutoffTime time.Time) (*domain.DeviceList, domain.Status) {
+func (h *ServiceHandler) ListDisconnectedDevices(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, cutoffTime time.Time) (*domain.DeviceList, domain.Status) {
 	storeParams, status := convertDeviceListParams(params, nil)
 	if status.Code != http.StatusOK {
 		return nil, status
-	}
-
-	// Check if SummaryOnly is true
-	if params.SummaryOnly != nil && *params.SummaryOnly {
-		// Check for unsupported parameters
-		return nil, domain.StatusBadRequest("summaryOnly is not supported for disconnected devices")
 	}
 
 	if params.FieldSelector != nil {
@@ -629,7 +623,7 @@ func (h *ServiceHandler) GetDeviceRepositoryRefs(ctx context.Context, orgId uuid
 	return result, StoreErrorToApiStatus(err, false, domain.DeviceKind, &name)
 }
 
-func (h *ServiceHandler) CountDevices(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector) (int64, domain.Status) {
+func (h *ServiceHandler) CountDevices(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector) (int64, domain.Status) {
 	storeParams, status := convertDeviceListParams(params, annotationSelector)
 	if status.Code != http.StatusOK {
 		return 0, status
@@ -643,7 +637,7 @@ func (h *ServiceHandler) UnmarkDevicesRolloutSelection(ctx context.Context, orgI
 	return StoreErrorToApiStatus(err, false, domain.DeviceKind, nil)
 }
 
-func (h *ServiceHandler) MarkDevicesRolloutSelection(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector, limit *int) domain.Status {
+func (h *ServiceHandler) MarkDevicesRolloutSelection(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector, limit *int) domain.Status {
 	storeParams, status := convertDeviceListParams(params, annotationSelector)
 	if status.Code != http.StatusOK {
 		return status
@@ -657,7 +651,7 @@ func (h *ServiceHandler) GetDeviceCompletionCounts(ctx context.Context, orgId uu
 	return result, StoreErrorToApiStatus(err, false, domain.DeviceKind, nil)
 }
 
-func (h *ServiceHandler) CountDevicesByLabels(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector, groupBy []string) ([]map[string]any, domain.Status) {
+func (h *ServiceHandler) CountDevicesByLabels(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector, groupBy []string) ([]map[string]any, domain.Status) {
 	storeParams, status := convertDeviceListParams(params, annotationSelector)
 	if status.Code != http.StatusOK {
 		return nil, status
@@ -666,7 +660,7 @@ func (h *ServiceHandler) CountDevicesByLabels(ctx context.Context, orgId uuid.UU
 	return result, StoreErrorToApiStatus(err, false, domain.DeviceKind, nil)
 }
 
-func (h *ServiceHandler) GetDevicesSummary(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector) (*domain.DevicesSummary, domain.Status) {
+func (h *ServiceHandler) GetDevicesSummary(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector) (*domain.DevicesSummary, domain.Status) {
 	storeParams, status := convertDeviceListParams(params, annotationSelector)
 	if status.Code != http.StatusOK {
 		return nil, status
@@ -685,7 +679,11 @@ func (h *ServiceHandler) ResumeDevices(ctx context.Context, orgId uuid.UUID, req
 		request.LabelSelector, request.FieldSelector)
 
 	// Create list params with both label and field selectors
-	listParams, status := prepareListParams(nil, request.LabelSelector, request.FieldSelector, nil)
+	params := domain.ResourceListParams{
+		LabelSelector: request.LabelSelector,
+		FieldSelector: request.FieldSelector,
+	}
+	listParams, status := prepareListParams(params)
 	if status.Code != http.StatusOK {
 		return domain.DeviceResumeResponse{}, status
 	}

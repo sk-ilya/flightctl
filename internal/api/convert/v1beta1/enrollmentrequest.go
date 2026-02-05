@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./enrollmentrequest_conv.gen.go
 // goverter:name EnrollmentRequestConverterImpl
-// goverter:skipCopySameType
 type EnrollmentRequestConverter interface {
 	ToDomain(apiv1beta1.EnrollmentRequest) domain.EnrollmentRequest
 	FromDomain(*domain.EnrollmentRequest) *apiv1beta1.EnrollmentRequest
@@ -23,6 +22,6 @@ type EnrollmentRequestConverter interface {
 
 	ConfigFromDomain(*domain.EnrollmentConfig) *apiv1beta1.EnrollmentConfig
 
-	ListParamsToDomain(apiv1beta1.ListEnrollmentRequestsParams) domain.ListEnrollmentRequestsParams
+	ListParamsToDomain(apiv1beta1.ListEnrollmentRequestsParams) domain.ResourceListParams
 	GetConfigParamsToDomain(apiv1beta1.GetEnrollmentConfigParams) domain.GetEnrollmentConfigParams
 }

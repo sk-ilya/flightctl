@@ -7,6 +7,7 @@ import (
 
 	api "github.com/flightctl/flightctl/api/core/v1beta1"
 	"github.com/flightctl/flightctl/internal/consts"
+	"github.com/flightctl/flightctl/internal/domain"
 	"github.com/flightctl/flightctl/internal/identity"
 	"github.com/flightctl/flightctl/internal/store"
 	"github.com/flightctl/flightctl/internal/store/model"
@@ -131,7 +132,7 @@ var _ = Describe("AuthProvider Service Integration Tests", func() {
 				Expect(status.Code).To(Equal(int32(201)))
 			}
 
-			params := api.ListAuthProvidersParams{}
+			params := domain.ResourceListParams{}
 			result, status := suite.Handler.ListAuthProviders(suite.Ctx, orgId, params)
 			Expect(status.Code).To(Equal(int32(200)))
 			Expect(result).ToNot(BeNil())
@@ -151,7 +152,7 @@ var _ = Describe("AuthProvider Service Integration Tests", func() {
 			Expect(status.Code).To(Equal(int32(201)))
 
 			// Test label selector
-			params := api.ListAuthProvidersParams{
+			params := domain.ResourceListParams{
 				LabelSelector: lo.ToPtr("env=test"),
 			}
 			result, status := suite.Handler.ListAuthProviders(suite.Ctx, orgId, params)
@@ -171,7 +172,7 @@ var _ = Describe("AuthProvider Service Integration Tests", func() {
 			Expect(status.Code).To(Equal(int32(201)))
 
 			// Test field selector
-			params := api.ListAuthProvidersParams{
+			params := domain.ResourceListParams{
 				FieldSelector: lo.ToPtr("metadata.name=issuer-provider-1"),
 			}
 			result, status := suite.Handler.ListAuthProviders(suite.Ctx, orgId, params)
@@ -858,7 +859,7 @@ var _ = Describe("AuthProvider Service Integration Tests", func() {
 			}
 
 			// Test listing with limit
-			params := api.ListAuthProvidersParams{
+			params := domain.ResourceListParams{
 				Limit: lo.ToPtr(int32(2)),
 			}
 			result, status := suite.Handler.ListAuthProviders(suite.Ctx, orgId, params)

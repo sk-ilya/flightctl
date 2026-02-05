@@ -29,13 +29,13 @@ func (h *ServiceHandler) CreateFleet(ctx context.Context, orgId uuid.UUID, fleet
 	return result, StoreErrorToApiStatus(err, true, domain.FleetKind, fleet.Metadata.Name)
 }
 
-func (h *ServiceHandler) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.ResourceList[domain.Fleet], domain.Status) {
-	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
+func (h *ServiceHandler) ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, addDevicesSummary bool) (*domain.ResourceList[domain.Fleet], domain.Status) {
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}
 
-	result, err := h.store.Fleet().List(ctx, orgId, *listParams, store.ListWithDevicesSummary(util.DefaultBoolIfNil(params.AddDevicesSummary, false)))
+	result, err := h.store.Fleet().List(ctx, orgId, *listParams, store.ListWithDevicesSummary(addDevicesSummary))
 	if err == nil {
 		return result, domain.StatusOK()
 	}

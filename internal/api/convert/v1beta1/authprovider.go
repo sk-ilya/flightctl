@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./authprovider_conv.gen.go
 // goverter:name AuthProviderConverterImpl
-// goverter:skipCopySameType
 type AuthProviderConverter interface {
 	ToDomain(apiv1beta1.AuthProvider) domain.AuthProvider
 	FromDomain(*domain.AuthProvider) *apiv1beta1.AuthProvider
@@ -17,5 +16,5 @@ type AuthProviderConverter interface {
 	// goverter:map . Kind | AuthProviderListKind
 	ListFromDomain(*domain.AuthProviderList) *apiv1beta1.AuthProviderList
 
-	ListParamsToDomain(apiv1beta1.ListAuthProvidersParams) domain.ListAuthProvidersParams
+	ListParamsToDomain(apiv1beta1.ListAuthProvidersParams) domain.ResourceListParams
 }

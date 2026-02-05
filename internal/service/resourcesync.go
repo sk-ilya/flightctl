@@ -23,8 +23,8 @@ func (h *ServiceHandler) CreateResourceSync(ctx context.Context, orgId uuid.UUID
 	return result, StoreErrorToApiStatus(err, true, domain.ResourceSyncKind, rs.Metadata.Name)
 }
 
-func (h *ServiceHandler) ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ListResourceSyncsParams) (*domain.ResourceList[domain.ResourceSync], domain.Status) {
-	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
+func (h *ServiceHandler) ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.ResourceList[domain.ResourceSync], domain.Status) {
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}

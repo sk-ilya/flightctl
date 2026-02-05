@@ -6,6 +6,7 @@ import (
 
 	apiv1beta1 "github.com/flightctl/flightctl/api/core/v1beta1"
 	"github.com/flightctl/flightctl/internal/transport"
+	"github.com/samber/lo"
 )
 
 // (POST /api/v1/fleets)
@@ -25,7 +26,8 @@ func (h *TransportHandler) CreateFleet(w http.ResponseWriter, r *http.Request) {
 // (GET /api/v1/fleets)
 func (h *TransportHandler) ListFleets(w http.ResponseWriter, r *http.Request, params apiv1beta1.ListFleetsParams) {
 	domainParams := h.converter.Fleet().ListParamsToDomain(params)
-	body, status := h.serviceHandler.ListFleets(r.Context(), transport.OrgIDFromContext(r.Context()), domainParams)
+	addDevicesSummary := lo.FromPtrOr(params.AddDevicesSummary, false)
+	body, status := h.serviceHandler.ListFleets(r.Context(), transport.OrgIDFromContext(r.Context()), domainParams, addDevicesSummary)
 	apiResult := h.converter.Fleet().ListFromDomain(body)
 	transport.SetResponse(w, apiResult, status)
 }

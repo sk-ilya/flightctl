@@ -8,7 +8,6 @@ import (
 // goverter:converter
 // goverter:output:file ./resourcesync_conv.gen.go
 // goverter:name ResourceSyncConverterImpl
-// goverter:skipCopySameType
 type ResourceSyncConverter interface {
 	ToDomain(apiv1beta1.ResourceSync) domain.ResourceSync
 	FromDomain(*domain.ResourceSync) *apiv1beta1.ResourceSync
@@ -18,5 +17,5 @@ type ResourceSyncConverter interface {
 	// goverter:map Pagination Metadata
 	ListFromDomain(*domain.ResourceList[domain.ResourceSync]) *apiv1beta1.ResourceSyncList
 
-	ListParamsToDomain(apiv1beta1.ListResourceSyncsParams) domain.ListResourceSyncsParams
+	ListParamsToDomain(apiv1beta1.ListResourceSyncsParams) domain.ResourceListParams
 }

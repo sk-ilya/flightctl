@@ -12,7 +12,7 @@ import (
 
 type Service interface {
 	// CertificateSigningRequest
-	ListCertificateSigningRequests(ctx context.Context, orgId uuid.UUID, params domain.ListCertificateSigningRequestsParams) (*domain.ResourceList[domain.CertificateSigningRequest], domain.Status)
+	ListCertificateSigningRequests(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.ResourceList[domain.CertificateSigningRequest], domain.Status)
 	CreateCertificateSigningRequest(ctx context.Context, orgId uuid.UUID, csr domain.CertificateSigningRequest) (*domain.CertificateSigningRequest, domain.Status)
 	DeleteCertificateSigningRequest(ctx context.Context, orgId uuid.UUID, name string) domain.Status
 	GetCertificateSigningRequest(ctx context.Context, orgId uuid.UUID, name string) (*domain.CertificateSigningRequest, domain.Status)
@@ -22,7 +22,7 @@ type Service interface {
 
 	// Device
 	CreateDevice(ctx context.Context, orgId uuid.UUID, device domain.Device) (*domain.Device, domain.Status)
-	ListDevices(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector) (*domain.DeviceList, domain.Status)
+	ListDevices(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector, summaryOnly bool) (*domain.DeviceList, domain.Status)
 	ListDevicesByServiceCondition(ctx context.Context, orgId uuid.UUID, conditionType string, conditionStatus string, listParams store.ListParams) (*domain.DeviceList, domain.Status)
 	UpdateDevice(ctx context.Context, orgId uuid.UUID, name string, device domain.Device, fieldsToUnset []string) (*domain.Device, error)
 	GetDevice(ctx context.Context, orgId uuid.UUID, name string) (*domain.Device, domain.Status)
@@ -42,23 +42,23 @@ type Service interface {
 	SetDeviceServiceConditions(ctx context.Context, orgId uuid.UUID, name string, conditions []domain.Condition) domain.Status
 	OverwriteDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string, repositoryNames ...string) domain.Status
 	GetDeviceRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status)
-	CountDevices(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector) (int64, domain.Status)
+	CountDevices(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector) (int64, domain.Status)
 	UnmarkDevicesRolloutSelection(ctx context.Context, orgId uuid.UUID, fleetName string) domain.Status
-	MarkDevicesRolloutSelection(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector, limit *int) domain.Status
+	MarkDevicesRolloutSelection(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector, limit *int) domain.Status
 	GetDeviceCompletionCounts(ctx context.Context, orgId uuid.UUID, owner string, templateVersion string, updateTimeout *time.Duration) ([]domain.DeviceCompletionCount, domain.Status)
-	CountDevicesByLabels(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector, groupBy []string) ([]map[string]any, domain.Status)
-	GetDevicesSummary(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, annotationSelector *selector.AnnotationSelector) (*domain.DevicesSummary, domain.Status)
+	CountDevicesByLabels(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector, groupBy []string) ([]map[string]any, domain.Status)
+	GetDevicesSummary(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, annotationSelector *selector.AnnotationSelector) (*domain.DevicesSummary, domain.Status)
 	UpdateServiceSideDeviceStatus(ctx context.Context, orgId uuid.UUID, device domain.Device) bool
 	SetOutOfDate(ctx context.Context, orgId uuid.UUID, owner string) error
 	UpdateServerSideDeviceStatus(ctx context.Context, orgId uuid.UUID, name string) error
-	ListDisconnectedDevices(ctx context.Context, orgId uuid.UUID, params domain.ListDevicesParams, cutoffTime time.Time) (*domain.DeviceList, domain.Status)
+	ListDisconnectedDevices(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, cutoffTime time.Time) (*domain.DeviceList, domain.Status)
 
 	// EnrollmentConfig
 	GetEnrollmentConfig(ctx context.Context, orgId uuid.UUID, params domain.GetEnrollmentConfigParams) (*domain.EnrollmentConfig, domain.Status)
 
 	//EnrollmentRequest
 	CreateEnrollmentRequest(ctx context.Context, orgId uuid.UUID, er domain.EnrollmentRequest) (*domain.EnrollmentRequest, domain.Status)
-	ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ListEnrollmentRequestsParams) (*domain.ResourceList[domain.EnrollmentRequest], domain.Status)
+	ListEnrollmentRequests(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.ResourceList[domain.EnrollmentRequest], domain.Status)
 	GetEnrollmentRequest(ctx context.Context, orgId uuid.UUID, name string) (*domain.EnrollmentRequest, domain.Status)
 	ReplaceEnrollmentRequest(ctx context.Context, orgId uuid.UUID, name string, er domain.EnrollmentRequest) (*domain.EnrollmentRequest, domain.Status)
 	PatchEnrollmentRequest(ctx context.Context, orgId uuid.UUID, name string, patch domain.PatchRequest) (*domain.EnrollmentRequest, domain.Status)
@@ -69,7 +69,7 @@ type Service interface {
 
 	// Fleet
 	CreateFleet(ctx context.Context, orgId uuid.UUID, fleet domain.Fleet) (*domain.Fleet, domain.Status)
-	ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ListFleetsParams) (*domain.ResourceList[domain.Fleet], domain.Status)
+	ListFleets(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, addDevicesSummary bool) (*domain.ResourceList[domain.Fleet], domain.Status)
 	GetFleet(ctx context.Context, orgId uuid.UUID, name string, params domain.GetFleetParams) (*domain.Fleet, domain.Status)
 	ReplaceFleet(ctx context.Context, orgId uuid.UUID, name string, fleet domain.Fleet) (*domain.Fleet, domain.Status)
 	DeleteFleet(ctx context.Context, orgId uuid.UUID, name string) domain.Status
@@ -84,11 +84,11 @@ type Service interface {
 	GetFleetRepositoryRefs(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceList[domain.Repository], domain.Status)
 
 	// Labels
-	ListLabels(ctx context.Context, orgId uuid.UUID, params domain.ListLabelsParams) (*domain.LabelList, domain.Status)
+	ListLabels(ctx context.Context, orgId uuid.UUID, kind domain.ResourceKind, params domain.ResourceListParams) (*domain.LabelList, domain.Status)
 
 	// Repository
 	CreateRepository(ctx context.Context, orgId uuid.UUID, repo domain.Repository) (*domain.Repository, domain.Status)
-	ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ListRepositoriesParams) (*domain.ResourceList[domain.Repository], domain.Status)
+	ListRepositories(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.ResourceList[domain.Repository], domain.Status)
 	GetRepository(ctx context.Context, orgId uuid.UUID, name string) (*domain.Repository, domain.Status)
 	ReplaceRepository(ctx context.Context, orgId uuid.UUID, name string, repo domain.Repository) (*domain.Repository, domain.Status)
 	DeleteRepository(ctx context.Context, orgId uuid.UUID, name string) domain.Status
@@ -99,8 +99,8 @@ type Service interface {
 
 	// AuthProvider
 	CreateAuthProvider(ctx context.Context, orgId uuid.UUID, authProvider domain.AuthProvider) (*domain.AuthProvider, domain.Status)
-	ListAuthProviders(ctx context.Context, orgId uuid.UUID, params domain.ListAuthProvidersParams) (*domain.AuthProviderList, domain.Status)
-	ListAllAuthProviders(ctx context.Context, params domain.ListAuthProvidersParams) (*domain.AuthProviderList, domain.Status)
+	ListAuthProviders(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.AuthProviderList, domain.Status)
+	ListAllAuthProviders(ctx context.Context, params domain.ResourceListParams) (*domain.AuthProviderList, domain.Status)
 	GetAuthProvider(ctx context.Context, orgId uuid.UUID, name string) (*domain.AuthProvider, domain.Status)
 	GetAuthProviderByIssuerAndClientId(ctx context.Context, orgId uuid.UUID, issuer string, clientId string) (*domain.AuthProvider, domain.Status)
 	GetAuthProviderByAuthorizationUrl(ctx context.Context, orgId uuid.UUID, authorizationUrl string) (*domain.AuthProvider, domain.Status)
@@ -113,7 +113,7 @@ type Service interface {
 
 	// ResourceSync
 	CreateResourceSync(ctx context.Context, orgId uuid.UUID, rs domain.ResourceSync) (*domain.ResourceSync, domain.Status)
-	ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ListResourceSyncsParams) (*domain.ResourceList[domain.ResourceSync], domain.Status)
+	ListResourceSyncs(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.ResourceList[domain.ResourceSync], domain.Status)
 	GetResourceSync(ctx context.Context, orgId uuid.UUID, name string) (*domain.ResourceSync, domain.Status)
 	ReplaceResourceSync(ctx context.Context, orgId uuid.UUID, name string, rs domain.ResourceSync) (*domain.ResourceSync, domain.Status)
 	DeleteResourceSync(ctx context.Context, orgId uuid.UUID, name string) domain.Status
@@ -122,14 +122,14 @@ type Service interface {
 
 	// TemplateVersion
 	CreateTemplateVersion(ctx context.Context, orgId uuid.UUID, tv domain.TemplateVersion, immediateRollout bool) (*domain.TemplateVersion, domain.Status)
-	ListTemplateVersions(ctx context.Context, orgId uuid.UUID, fleet string, params domain.ListTemplateVersionsParams) (*domain.ResourceList[domain.TemplateVersion], domain.Status)
+	ListTemplateVersions(ctx context.Context, orgId uuid.UUID, fleet string, params domain.ResourceListParams) (*domain.ResourceList[domain.TemplateVersion], domain.Status)
 	GetTemplateVersion(ctx context.Context, orgId uuid.UUID, fleet string, name string) (*domain.TemplateVersion, domain.Status)
 	DeleteTemplateVersion(ctx context.Context, orgId uuid.UUID, fleet string, name string) domain.Status
 	GetLatestTemplateVersion(ctx context.Context, orgId uuid.UUID, fleet string) (*domain.TemplateVersion, domain.Status)
 
 	// Event
 	CreateEvent(ctx context.Context, orgId uuid.UUID, event *domain.Event)
-	ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ListEventsParams) (*domain.ResourceList[domain.Event], domain.Status)
+	ListEvents(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams, order *domain.SortOrder) (*domain.ResourceList[domain.Event], domain.Status)
 	DeleteEventsOlderThan(ctx context.Context, cutoffTime time.Time) (int64, domain.Status)
 
 	// Checkpoint
@@ -138,5 +138,5 @@ type Service interface {
 	GetDatabaseTime(ctx context.Context) (time.Time, domain.Status)
 
 	// Organization
-	ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.ResourceList[domain.Organization], domain.Status)
+	ListOrganizations(ctx context.Context, params domain.ResourceListParams) (*domain.ResourceList[domain.Organization], domain.Status)
 }

@@ -135,9 +135,9 @@ func (h *ServiceHandler) CreateAuthProvider(ctx context.Context, orgId uuid.UUID
 	return result, StoreErrorToApiStatus(err, true, domain.AuthProviderKind, authProvider.Metadata.Name)
 }
 
-func (h *ServiceHandler) ListAuthProviders(ctx context.Context, orgId uuid.UUID, params domain.ListAuthProvidersParams) (*domain.AuthProviderList, domain.Status) {
+func (h *ServiceHandler) ListAuthProviders(ctx context.Context, orgId uuid.UUID, params domain.ResourceListParams) (*domain.AuthProviderList, domain.Status) {
 
-	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}
@@ -157,9 +157,9 @@ func (h *ServiceHandler) ListAuthProviders(ctx context.Context, orgId uuid.UUID,
 	}
 }
 
-func (h *ServiceHandler) ListAllAuthProviders(ctx context.Context, params domain.ListAuthProvidersParams) (*domain.AuthProviderList, domain.Status) {
+func (h *ServiceHandler) ListAllAuthProviders(ctx context.Context, params domain.ResourceListParams) (*domain.AuthProviderList, domain.Status) {
 
-	listParams, status := prepareListParams(params.Continue, params.LabelSelector, params.FieldSelector, params.Limit)
+	listParams, status := prepareListParams(params)
 	if status != domain.StatusOK() {
 		return nil, status
 	}

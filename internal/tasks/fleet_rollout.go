@@ -100,7 +100,7 @@ func (f FleetRolloutsLogic) RolloutFleet(ctx context.Context) error {
 	owner := util.SetResourceOwner(domain.FleetKind, f.event.InvolvedObject.Name)
 	f.owner = *owner
 
-	listParams := domain.ListDevicesParams{
+	listParams := domain.ResourceListParams{
 		Limit:         lo.ToPtr(int32(ItemsPerPage)),
 		FieldSelector: lo.ToPtr(fmt.Sprintf("metadata.owner=%s", *owner)),
 	}
@@ -121,7 +121,7 @@ func (f FleetRolloutsLogic) RolloutFleet(ctx context.Context) error {
 	delayDeviceRender := fleet.Spec.RolloutPolicy != nil && fleet.Spec.RolloutPolicy.DisruptionBudget != nil
 
 	for {
-		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, annotationSelector)
+		devices, status := f.serviceHandler.ListDevices(ctx, f.orgId, listParams, annotationSelector, false)
 		if status.Code != http.StatusOK {
 			// TODO: Retry when we have a mechanism that allows it
 			return fmt.Errorf("failed fetching devices: %s", status.Message)

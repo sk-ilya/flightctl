@@ -20,6 +20,7 @@ import (
 	"github.com/flightctl/flightctl/api/core/v1beta1"
 	"github.com/flightctl/flightctl/internal/agent/device/certmanager/provider"
 	"github.com/flightctl/flightctl/internal/crypto/signer"
+	"github.com/flightctl/flightctl/internal/domain"
 	"github.com/flightctl/flightctl/internal/org"
 	"github.com/flightctl/flightctl/pkg/certmanager"
 	fccrypto "github.com/flightctl/flightctl/pkg/crypto"
@@ -344,7 +345,7 @@ var _ = Describe("Device Agent behavior", func() {
 				// wait for CSR to be created by agent
 				var csr v1beta1.CertificateSigningRequest
 				Eventually(func() bool {
-					list, status := h.ServiceHandler.ListCertificateSigningRequests(h.AuthenticatedContext(h.Context), org.DefaultID, v1beta1.ListCertificateSigningRequestsParams{})
+					list, status := h.ServiceHandler.ListCertificateSigningRequests(h.AuthenticatedContext(h.Context), org.DefaultID, domain.ResourceListParams{})
 					if status.Code != int32(200) || list == nil {
 						return false
 					}
@@ -411,7 +412,7 @@ func approveEnrollment(h *harness.TestHarness, deviceName string, approval *v1be
 }
 
 func getEnrollmentDeviceName(h *harness.TestHarness, deviceName *string) bool {
-	list, status := h.ServiceHandler.ListEnrollmentRequests(h.AuthenticatedContext(h.Context), org.DefaultID, v1beta1.ListEnrollmentRequestsParams{})
+	list, status := h.ServiceHandler.ListEnrollmentRequests(h.AuthenticatedContext(h.Context), org.DefaultID, domain.ResourceListParams{})
 	Expect(status.Code).To(BeEquivalentTo(200))
 
 	if list == nil || len(list.Items) == 0 {

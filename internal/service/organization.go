@@ -28,10 +28,10 @@ func organizationModelToAPI(org *model.Organization) domain.Organization {
 	}
 }
 
-func (h *ServiceHandler) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.ResourceList[domain.Organization], domain.Status) {
+func (h *ServiceHandler) ListOrganizations(ctx context.Context, params domain.ResourceListParams) (*domain.ResourceList[domain.Organization], domain.Status) {
 	var orgs []*model.Organization
 	var err error
-	listParams, status := prepareListParams(nil, nil, params.FieldSelector, nil)
+	listParams, status := prepareListParams(params)
 	if status.Code != http.StatusOK {
 		return nil, status
 	}
