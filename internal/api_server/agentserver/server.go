@@ -281,7 +281,8 @@ func (s *AgentServer) prepareHTTPHandler(ctx context.Context, serviceHandler ser
 	negotiator := versioning.NewNegotiator(versioning.V1Beta1, apimetaserver.MetadataResolver)
 
 	// Create handler for agent API
-	handlerV1Beta1 := agenttransportv1beta1.NewAgentTransportHandler(serviceHandler, convertv1beta1.NewConverter(), s.ca, s.log)
+	converterV1Beta1 := convertv1beta1.NewConverter()
+	handlerV1Beta1 := agenttransportv1beta1.NewAgentTransportHandler(serviceHandler, converterV1Beta1, s.ca, s.log)
 
 	// Create version-specific router with OpenAPI validation
 	agentV1Beta1Swagger, err := agentv1beta1.GetSwagger()
@@ -290,6 +291,7 @@ func (s *AgentServer) prepareHTTPHandler(ctx context.Context, serviceHandler ser
 	}
 	routerV1Beta1 := versioning.NewRouter(versioning.RouterConfig{
 		Middlewares: []versioning.Middleware{
+			versioning.ValidateBodyAPIVersion(versioning.V1Beta1, handlerV1Beta1),
 			oapimiddleware.OapiRequestValidatorWithOptions(agentV1Beta1Swagger, &oapimiddleware.Options{
 				ErrorHandler:          apiserver.OapiErrorHandler,
 				SilenceServersWarning: true,

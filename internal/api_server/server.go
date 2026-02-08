@@ -224,9 +224,13 @@ func (s *Server) Run(ctx context.Context) error {
 	// Create version negotiator with v1beta1 as default
 	negotiator := versioning.NewNegotiator(versioning.V1Beta1, server.MetadataResolver)
 
+	// Create converters (reused for both transport handlers and body version validation)
+	converterV1Beta1 := convertv1beta1.NewConverter()
+	converterV1Alpha1 := convertv1alpha1.NewConverter()
+
 	// Create v1beta1 transport handler
 	handlerV1Beta1 := transportv1beta1.NewTransportHandler(
-		serviceHandler, convertv1beta1.NewConverter(),
+		serviceHandler, converterV1Beta1,
 		s.authN, authTokenProxy, authUserInfoProxy, s.authZ,
 	)
 
@@ -242,7 +246,10 @@ func (s *Server) Run(ctx context.Context) error {
 	})
 
 	routerV1Beta1 := versioning.NewRouter(versioning.RouterConfig{
-		Middlewares: []versioning.Middleware{v1beta1OapiMiddleware},
+		Middlewares: []versioning.Middleware{
+			versioning.ValidateBodyAPIVersion(versioning.V1Beta1, handlerV1Beta1),
+			v1beta1OapiMiddleware,
+		},
 		RegisterRoutes: func(r chi.Router) {
 			server.HandlerFromMux(&customTransportHandler{handlerV1Beta1}, r)
 		},
@@ -261,11 +268,14 @@ func (s *Server) Run(ctx context.Context) error {
 
 	// Create v1alpha1 transport handler for alpha-stage resources (Catalog)
 	handlerV1Alpha1 := transportv1alpha1.NewTransportHandler(
-		serviceHandler, convertv1alpha1.NewConverter(),
+		serviceHandler, converterV1Alpha1,
 	)
 
 	routerV1Alpha1 := versioning.NewRouter(versioning.RouterConfig{
-		Middlewares: []versioning.Middleware{v1alpha1OapiMiddleware},
+		Middlewares: []versioning.Middleware{
+			versioning.ValidateBodyAPIVersion(versioning.V1Alpha1, handlerV1Alpha1),
+			v1alpha1OapiMiddleware,
+		},
 		RegisterRoutes: func(r chi.Router) {
 			serverv1alpha1.HandlerFromMux(handlerV1Alpha1, r)
 		},

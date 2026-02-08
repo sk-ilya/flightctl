@@ -358,6 +358,27 @@ type LateBindingType string
 // ResourceKind Resource types exposed via the ImageBuilder API.
 type ResourceKind string
 
+// Status Status is a return value for calls that don't return other objects.
+type Status struct {
+	// ApiVersion APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources.
+	ApiVersion string `json:"apiVersion"`
+
+	// Code Suggested HTTP return code for this status, 0 if not set.
+	Code int32 `json:"code"`
+
+	// Kind Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds.
+	Kind string `json:"kind"`
+
+	// Message A human-readable description of the status of this operation.
+	Message string `json:"message"`
+
+	// Reason A machine-readable description of why this operation is in the "Failure" status. If this value is empty there is no information available. A Reason clarifies an HTTP status code but does not override it.
+	Reason string `json:"reason"`
+
+	// Status Status of the operation. One of: "Success" or "Failure". More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status.
+	Status string `json:"status"`
+}
+
 // ListImageBuildsParams defines parameters for ListImageBuilds.
 type ListImageBuildsParams struct {
 	// LabelSelector A selector to restrict the list of returned objects by their labels.

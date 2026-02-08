@@ -183,7 +183,10 @@ func (s *Server) Run(ctx context.Context) error {
 
 	// Create v1alpha1 router with OpenAPI validation and auth
 	routerV1Alpha1 := versioning.NewRouter(versioning.RouterConfig{
-		Middlewares: []versioning.Middleware{v1alpha1OapiMiddleware},
+		Middlewares: []versioning.Middleware{
+			versioning.ValidateBodyAPIVersion(versioning.V1Alpha1, transportHandler),
+			v1alpha1OapiMiddleware,
+		},
 		RegisterRoutes: func(r chi.Router) {
 			server.HandlerFromMux(transportHandler, r)
 		},
