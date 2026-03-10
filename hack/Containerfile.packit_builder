@@ -14,6 +14,10 @@ RUN dnf install -y \
 
 RUN dnf clean all
 
+# Workaround: packit main requires specfile>=0.40.0 (sanitize param)
+# but the Fedora RPM repos still ship 0.38.0. Remove once RPM catches up.
+RUN pip install --upgrade "specfile>=0.40.0"
+
 RUN install -d -m 0755 /root/go/pkg/mod && \
     install -d -m 0755 /root/.cache/go-build && \
     rm -rf /var/cache/dnf && mkdir /work
