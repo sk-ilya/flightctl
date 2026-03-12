@@ -31,6 +31,7 @@ BuildRequires:  systemd-rpm-macros
 Requires: openssl
 
 %global flightctl_target flightctl.target
+%global flightctl_observability_target flightctl-observability.target
 
 
 %description
@@ -167,6 +168,7 @@ echo "Note: Observability stack can be installed independently of other Flight C
 
 %post observability
 # This script runs AFTER the files have been installed onto the system.
+%systemd_post %{flightctl_observability_target}
 echo "Running post-install actions for Flight Control Observability Stack..."
 
 # Set ownership for persistent data directories
@@ -192,6 +194,11 @@ chown 472:472 /var/lib/grafana
 echo "Reloading systemd daemon..."
 /usr/bin/systemctl daemon-reload
 
+# On upgrade: mark the target for restart so all PartOf= services restart.
+if [ "$1" -ge 2 ] && [ -x "/usr/lib/systemd/systemd-update-helper" ]; then
+    /usr/lib/systemd/systemd-update-helper mark-restart-system-units %{flightctl_observability_target} || :
+fi
+
 echo "Flight Control Observability Stack services installed. Services are configured but not started."
 echo "Configuration templates are rendered at service start time."
 echo "To start services: sudo systemctl start flightctl-observability.target"
@@ -201,42 +208,35 @@ echo "For automatic startup: sudo systemctl enable flightctl-observability.targe
 
 
 %preun observability
-echo "Running pre-uninstall actions for Flight Control Observability Stack..."
-# Stop and disable the target and all services
-/usr/bin/systemctl stop flightctl-observability.target >/dev/null 2>&1 || :
-/usr/bin/systemctl disable flightctl-observability.target >/dev/null 2>&1 || :
-/usr/bin/systemctl stop flightctl-grafana.service >/dev/null 2>&1 || :
-/usr/bin/systemctl disable flightctl-grafana.service >/dev/null 2>&1 || :
-/usr/bin/systemctl stop flightctl-userinfo-proxy.service >/dev/null 2>&1 || :
-/usr/bin/systemctl disable flightctl-userinfo-proxy.service >/dev/null 2>&1 || :
-/usr/bin/systemctl stop flightctl-prometheus.service >/dev/null 2>&1 || :
-/usr/bin/systemctl disable flightctl-prometheus.service >/dev/null 2>&1 || :
+# On package removal: stop and disable all services
+%systemd_preun %{flightctl_observability_target}
 
 
 %postun observability
-echo "Running post-uninstall actions for Flight Control Observability Stack..."
-# Clean up Podman containers associated with the services
-/usr/bin/podman rm -f flightctl-grafana >/dev/null 2>&1 || :
-/usr/bin/podman rm -f flightctl-userinfo-proxy >/dev/null 2>&1 || :
-/usr/bin/podman rm -f flightctl-prometheus >/dev/null 2>&1 || :
+# On upgrade: mark services for restart after transaction completes
+%systemd_postun_with_restart %{flightctl_observability_target}
+%systemd_postun %{flightctl_observability_target}
 
-# Note: Podman secrets are managed by the telemetry-gateway package
-# and will be cleaned up when that package is uninstalled
+if [ "$1" -eq 0 ]; then
+    # Full uninstall: clean up Podman containers associated with the services
+    /usr/bin/podman rm -f flightctl-grafana >/dev/null 2>&1 || :
+    /usr/bin/podman rm -f flightctl-userinfo-proxy >/dev/null 2>&1 || :
+    /usr/bin/podman rm -f flightctl-prometheus >/dev/null 2>&1 || :
 
-# Remove SELinux fcontext rules added by this package
-/usr/sbin/semanage fcontext -d -t container_file_t "/etc/flightctl/flightctl-grafana(/.*)?" >/dev/null 2>&1 || :
-/usr/sbin/semanage fcontext -d -t container_file_t "/var/lib/grafana(/.*)?" >/dev/null 2>&1 || :
-/usr/sbin/semanage fcontext -d -t container_file_t "/etc/flightctl/flightctl-prometheus(/.*)?" >/dev/null 2>&1 || :
-/usr/sbin/semanage fcontext -d -t container_file_t "/var/lib/prometheus(/.*)?" >/dev/null 2>&1 || :
+    # Remove SELinux fcontext rules added by this package
+    /usr/sbin/semanage fcontext -d -t container_file_t "/etc/flightctl/flightctl-grafana(/.*)?" >/dev/null 2>&1 || :
+    /usr/sbin/semanage fcontext -d -t container_file_t "/var/lib/grafana(/.*)?" >/dev/null 2>&1 || :
+    /usr/sbin/semanage fcontext -d -t container_file_t "/etc/flightctl/flightctl-prometheus(/.*)?" >/dev/null 2>&1 || :
+    /usr/sbin/semanage fcontext -d -t container_file_t "/var/lib/prometheus(/.*)?" >/dev/null 2>&1 || :
 
-# Restore default SELinux contexts for affected directories
-/usr/sbin/restorecon -RvF /etc/flightctl/flightctl-grafana >/dev/null 2>&1 || :
-/usr/sbin/restorecon -RvF /var/lib/grafana >/dev/null 2>&1 || :
-/usr/sbin/restorecon -RvF /etc/flightctl/flightctl-prometheus >/dev/null 2>&1 || :
-/usr/sbin/restorecon -RvF /var/lib/prometheus >/dev/null 2>&1 || :
+    # Restore default SELinux contexts for affected directories
+    /usr/sbin/restorecon -RvF /etc/flightctl/flightctl-grafana >/dev/null 2>&1 || :
+    /usr/sbin/restorecon -RvF /var/lib/grafana >/dev/null 2>&1 || :
+    /usr/sbin/restorecon -RvF /etc/flightctl/flightctl-prometheus >/dev/null 2>&1 || :
+    /usr/sbin/restorecon -RvF /var/lib/prometheus >/dev/null 2>&1 || :
 
-/usr/bin/systemctl daemon-reload
-echo "Flight Control Observability Stack uninstalled."
+    echo "Flight Control Observability Stack uninstalled."
+fi
 
 %prep
 %goprep -A

@@ -332,6 +332,9 @@ sudo dnf update flightctl-services
 
 # Or upgrade using a specific RPM file
 sudo rpm -Uvh flightctl-services-*.rpm
+
+# When observability is also installed, upgrade both packages together
+sudo rpm -Uvh flightctl-services-*.rpm flightctl-observability-*.rpm
 ```
 
 The RPM upgrade process includes:
